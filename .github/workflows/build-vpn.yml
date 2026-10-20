@@ -99,6 +99,7 @@ jobs:
           cp app/src/main/assets/index.html sing-box-for-android/app/src/main/assets/nodeatlas.html
           mkdir -p sing-box-for-android/app/src/main/java/io/nekohasekai/sfa/nodeatlas
           cp vpn-overlay/NodeAtlasActivity.java sing-box-for-android/app/src/main/java/io/nekohasekai/sfa/nodeatlas/NodeAtlasActivity.java
+          cp vpn-overlay/NodeAtlasController.kt sing-box-for-android/app/src/main/java/io/nekohasekai/sfa/nodeatlas/NodeAtlasController.kt
           python3 - <<'PY'
           from pathlib import Path
           import re
