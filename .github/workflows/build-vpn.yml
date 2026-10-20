@@ -79,17 +79,23 @@ jobs:
           cp vpn-overlay/NodeAtlasActivity.java sing-box-for-android/app/src/main/java/io/nekohasekai/sfa/nodeatlas/NodeAtlasActivity.java
           python3 - <<'PY'
           from pathlib import Path
+          import re
 
           manifest = Path("sing-box-for-android/app/src/main/AndroidManifest.xml")
           text = manifest.read_text()
-          launcher = '''                <action android:name="android.intent.action.MAIN" />
-
-                <category android:name="android.intent.category.LAUNCHER" />'''
-          if launcher not in text:
-              raise SystemExit("SFA launcher block was not found")
-          text = text.replace(launcher, "", 1)
           anchor = '''        <activity
             android:name=".compose.MainActivity"'''
+          start = text.find(anchor)
+          if start < 0:
+              raise SystemExit("SFA MainActivity anchor was not found")
+          end = text.find("</activity>", start)
+          if end < 0:
+              raise SystemExit("SFA MainActivity closing tag was not found")
+          block = text[start:end]
+          block, removed = re.subn(r'\s*<action android:name="android.intent.action.MAIN" />\s*<category android:name="android.intent.category.LAUNCHER" />', "", block, count=1)
+          if removed != 1:
+              raise SystemExit("SFA launcher block was not found")
+          text = text[:start] + block + text[end:]
           node_atlas = '''        <activity
             android:name=".nodeatlas.NodeAtlasActivity"
             android:exported="true"
@@ -101,8 +107,6 @@ jobs:
             </intent-filter>
           </activity>
           '''
-          if anchor not in text:
-              raise SystemExit("SFA MainActivity anchor was not found")
           text = text.replace(anchor, node_atlas + anchor, 1)
           manifest.write_text(text)
 
