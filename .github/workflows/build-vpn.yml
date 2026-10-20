@@ -148,12 +148,8 @@ jobs:
           # WebView surface. Keep the VPN service and data layer, but let R8 remove
           # the unreachable upstream screens and their resources from the debug APK.
           build_text, debug_changed = re.subn(
-              r'(?m)^    debug\s*\{\s*',
-              '''    debug {
-            isMinifyEnabled = true
-            isShrinkResources = true
-            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            ''',
+              r'(?m)^(\s*)debug\s*\{\s*',
+              r'\1debug {\n\1    isMinifyEnabled = true\n\1    isShrinkResources = true\n\1    proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")\n\1',
               build_text,
               count=1,
           )
