@@ -494,14 +494,97 @@
         setTimeout(() => URL.revokeObjectURL(link.href), 1000);
       }
 
+      function param(params, ...keys) {
+        for (const key of keys) {
+          const value = params && params[key];
+          if (value !== undefined && value !== null && String(value) !== '') return String(value);
+        }
+        return '';
+      }
+
+      function boolParam(params, ...keys) { return /^(?:1|true|yes)$/i.test(param(params, ...keys)); }
+
+      function tlsConfig(node, forceEnabled) {
+        const params = node.params || {};
+        const security = param(params, 'security', 'tls').toLowerCase();
+        const reality = security === 'reality' || !!param(params, 'pbk', 'publicKey', 'public_key');
+        const enabled = !!forceEnabled || reality || security === 'tls' || !!param(params, 'sni', 'serverName', 'server_name');
+        if (!enabled) return null;
+        const tls = {enabled: true, server_name: param(params, 'sni', 'serverName', 'server_name') || node.host};
+        const alpn = param(params, 'alpn').split(',').map(item => item.trim()).filter(Boolean);
+        if (alpn.length) tls.alpn = alpn;
+        const fingerprint = param(params, 'fp', 'fingerprint');
+        if (fingerprint) tls.utls = {enabled: true, fingerprint};
+        if (reality) {
+          tls.reality = {enabled: true};
+          const publicKey = param(params, 'pbk', 'publicKey', 'public_key');
+          const shortId = param(params, 'sid', 'shortId', 'short_id');
+          if (publicKey) tls.reality.public_key = publicKey;
+          if (shortId) tls.reality.short_id = shortId;
+        }
+        if (boolParam(params, 'allowInsecure', 'allow_insecure', 'skip-cert-verify', 'skip_cert_verify', 'insecure')) tls.insecure = true;
+        return tls;
+      }
+
+      function transportConfig(node) {
+        const params = node.params || {};
+        const network = param(params, 'type', 'network', 'net').toLowerCase();
+        if (network === 'ws' || network === 'websocket') {
+          const transport = {type: 'ws'};
+          const path = param(params, 'path');
+          const host = param(params, 'host', 'wsHost', 'ws_host');
+          if (path) transport.path = path;
+          if (host) transport.headers = {Host: host};
+          return transport;
+        }
+        if (network === 'grpc') {
+          const transport = {type: 'grpc'};
+          const service = param(params, 'serviceName', 'service_name', 'grpc-service-name', 'grpc_service_name');
+          if (service) transport.service_name = service;
+          return transport;
+        }
+        if (network === 'http' || network === 'h2') {
+          const transport = {type: 'http'};
+          const host = param(params, 'host', 'httpHost', 'http_host');
+          const path = param(params, 'path');
+          if (host) transport.host = host.split(',').map(item => item.trim()).filter(Boolean);
+          if (path) transport.path = path;
+          return transport;
+        }
+        return null;
+      }
+
       function singBoxOutbound(node) {
         const common = { tag: 'proxy', server: node.host, server_port: Number(node.port) };
         if (node.kind === 'socks5' || node.kind === 'socks') return Object.assign({ type: 'socks' }, common, node.user ? {username: node.user, password: node.password} : {});
-        if (node.kind === 'http' || node.kind === 'https') return Object.assign({ type: 'http' }, common, node.user ? {username: node.user, password: node.password} : {});
+        if (node.kind === 'http' || node.kind === 'https') return Object.assign({ type: 'http' }, common, node.user ? {username: node.user, password: node.password} : {}, node.kind === 'https' ? {tls: tlsConfig(node, true)} : {});
         if (node.kind === 'ss') return Object.assign({ type: 'shadowsocks', method: node.user, password: node.password }, common);
-        if (node.kind === 'vmess') return Object.assign({ type: 'vmess', uuid: node.user, security: node.params.scy || 'auto' }, common);
-        if (node.kind === 'vless') return Object.assign({ type: 'vless', uuid: node.user, tls: {enabled: node.params.security === 'tls', server_name: node.params.sni || node.host} }, common);
-        if (node.kind === 'trojan') return Object.assign({ type: 'trojan', password: node.password, tls: {enabled: true, server_name: node.params.sni || node.host} }, common);
+        if (node.kind === 'vmess') {
+          const outbound = Object.assign({ type: 'vmess', uuid: node.user, security: param(node.params, 'scy', 'security') || 'auto' }, common);
+          const alterId = param(node.params, 'aid', 'alterId', 'alter_id');
+          if (alterId) outbound.alter_id = Number(alterId);
+          const tls = tlsConfig(node, param(node.params, 'tls').toLowerCase() === 'tls');
+          const transport = transportConfig(node);
+          if (tls) outbound.tls = tls;
+          if (transport) outbound.transport = transport;
+          return outbound;
+        }
+        if (node.kind === 'vless') {
+          const outbound = Object.assign({ type: 'vless', uuid: node.user }, common);
+          const flow = param(node.params, 'flow');
+          const tls = tlsConfig(node, false);
+          const transport = transportConfig(node);
+          if (flow) outbound.flow = flow;
+          if (tls) outbound.tls = tls;
+          if (transport) outbound.transport = transport;
+          return outbound;
+        }
+        if (node.kind === 'trojan') {
+          const outbound = Object.assign({ type: 'trojan', password: node.password, tls: tlsConfig(node, true) }, common);
+          const transport = transportConfig(node);
+          if (transport) outbound.transport = transport;
+          return outbound;
+        }
         return null;
       }
 
