@@ -73,6 +73,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          mkdir -p sing-box-for-android/app/src/main/assets
           cp app/src/main/assets/index.html sing-box-for-android/app/src/main/assets/nodeatlas.html
           mkdir -p sing-box-for-android/app/src/main/java/io/nekohasekai/sfa/nodeatlas
           cp vpn-overlay/NodeAtlasActivity.java sing-box-for-android/app/src/main/java/io/nekohasekai/sfa/nodeatlas/NodeAtlasActivity.java
