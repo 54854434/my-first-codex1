@@ -1,0 +1,45 @@
+name: Build NodeAtlas
+
+on:
+  push:
+    branches:
+      - codex/node-atlas
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.13'
+
+      - name: Build debug APK
+        run: gradle --no-daemon --stacktrace assembleDebug
+
+      - name: Assemble deliverables
+        run: |
+          mkdir -p dist
+          cp app/build/outputs/apk/debug/app-debug.apk dist/NodeAtlas-debug.apk
+          cp app/src/main/assets/index.html dist/NodeAtlas.html
+          sha256sum dist/* > dist/SHA256SUMS.txt
+
+      - name: Upload APK and HTML
+        uses: actions/upload-artifact@v4
+        with:
+          name: nodeatlas-build
+          path: dist
+          if-no-files-found: error

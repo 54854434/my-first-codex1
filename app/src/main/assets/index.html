@@ -1,0 +1,549 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="theme-color" content="#07111c">
+  <title>NodeAtlas · 节点聚合器</title>
+  <style>
+    :root {
+      --bg: #07111c;
+      --panel: #0d1b29;
+      --panel-2: #112538;
+      --panel-3: #142c42;
+      --text: #eaf4f7;
+      --muted: #8ca5b2;
+      --faint: #5f7784;
+      --line: rgba(166, 207, 220, .14);
+      --accent: #00d2b2;
+      --accent-2: #ffcb6b;
+      --danger: #ff7b86;
+      --blue: #71b7ff;
+      --shadow: 0 18px 60px rgba(0,0,0,.22);
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; color: var(--text); background: radial-gradient(circle at 80% -10%, #123b4b 0, transparent 35%), var(--bg); font: 14px/1.5 Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; }
+    button, input, textarea, select { font: inherit; }
+    button { border: 0; cursor: pointer; color: var(--text); }
+    .app { min-height: 100vh; display: grid; grid-template-columns: 246px minmax(0,1fr); }
+    .sidebar { border-right: 1px solid var(--line); background: rgba(7,17,28,.74); padding: 22px 16px; display: flex; flex-direction: column; gap: 24px; }
+    .brand { display: flex; gap: 11px; align-items: center; padding: 5px 8px; }
+    .mark { width: 34px; height: 34px; border-radius: 11px; display: grid; place-items: center; background: linear-gradient(135deg, var(--accent), #1488a0); color: #041016; font-weight: 900; box-shadow: 0 9px 24px rgba(0,210,178,.22); }
+    .brand strong { display: block; letter-spacing: .5px; font-size: 16px; }
+    .brand small { color: var(--muted); font-size: 10px; letter-spacing: .12em; text-transform: uppercase; }
+    .nav { display: grid; gap: 7px; }
+    .nav button { text-align: left; padding: 11px 12px; border-radius: 10px; background: transparent; color: var(--muted); }
+    .nav button:hover, .nav button.active { color: var(--text); background: rgba(113,183,255,.11); }
+    .nav button.active { box-shadow: inset 3px 0 var(--accent); }
+    .side-note { margin-top: auto; color: var(--muted); font-size: 12px; padding: 12px; border: 1px solid var(--line); border-radius: 12px; background: rgba(13,27,41,.65); }
+    .side-note b { color: var(--accent-2); font-weight: 600; }
+    main { min-width: 0; padding: 26px clamp(18px, 4vw, 50px) 40px; }
+    .topbar { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 24px; }
+    h1 { margin: 0; font-size: clamp(22px, 3vw, 31px); letter-spacing: -.035em; }
+    .subtitle { margin: 7px 0 0; color: var(--muted); max-width: 650px; }
+    .status { display: inline-flex; align-items: center; gap: 8px; padding: 8px 11px; border: 1px solid var(--line); border-radius: 999px; color: var(--muted); background: rgba(13,27,41,.8); white-space: nowrap; }
+    .dot { width: 8px; height: 8px; border-radius: 999px; background: var(--accent); box-shadow: 0 0 14px var(--accent); }
+    .dot.off { background: var(--faint); box-shadow: none; }
+    .grid { display: grid; gap: 16px; }
+    .summary { grid-template-columns: repeat(4, minmax(0, 1fr)); margin-bottom: 16px; }
+    .card { background: linear-gradient(145deg, rgba(17,37,56,.94), rgba(13,27,41,.96)); border: 1px solid var(--line); box-shadow: var(--shadow); border-radius: 16px; }
+    .metric { padding: 17px 18px; }
+    .metric label { color: var(--muted); font-size: 12px; }
+    .metric strong { display: block; margin-top: 4px; font-size: 27px; letter-spacing: -.04em; }
+    .metric span { color: var(--faint); font-size: 11px; }
+    .workspace { grid-template-columns: minmax(0, 1.52fr) minmax(310px, .78fr); align-items: start; }
+    .card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 18px; border-bottom: 1px solid var(--line); }
+    .card-head h2 { margin: 0; font-size: 14px; letter-spacing: .02em; }
+    .card-body { padding: 16px 18px; }
+    .toolbar { display: flex; flex-wrap: wrap; gap: 9px; align-items: center; }
+    .field { display: flex; align-items: center; gap: 8px; min-width: 0; padding: 9px 11px; border-radius: 10px; border: 1px solid var(--line); background: rgba(7,17,28,.5); color: var(--muted); }
+    .field input, .field select, .field textarea { min-width: 0; flex: 1; border: 0; outline: 0; color: var(--text); background: transparent; }
+    .field input::placeholder, textarea::placeholder { color: #5c7280; }
+    .search { flex: 1 1 220px; }
+    .btn { padding: 9px 13px; border-radius: 10px; background: var(--panel-3); border: 1px solid var(--line); transition: .16s ease; }
+    .btn:hover { transform: translateY(-1px); border-color: rgba(0,210,178,.55); }
+    .btn.primary { background: linear-gradient(135deg, #00bfa3, #0e8f9b); color: #03151b; font-weight: 700; border: 0; }
+    .btn.ghost { background: transparent; color: var(--muted); }
+    .btn.warn { color: #1e1608; background: var(--accent-2); }
+    .btn.danger { color: #210a0e; background: var(--danger); }
+    .source-form { display: grid; grid-template-columns: 1fr 1.5fr auto; gap: 9px; margin-bottom: 12px; }
+    .help { color: var(--faint); font-size: 11px; margin: 8px 1px 0; }
+    .source-list { display: grid; gap: 8px; margin-top: 14px; }
+    .source-row { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 10px; align-items: center; padding: 10px 11px; border: 1px solid var(--line); border-radius: 11px; background: rgba(7,17,28,.36); }
+    .source-row strong { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .source-row small { display: block; color: var(--faint); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .source-actions { display: flex; gap: 6px; }
+    .icon-btn { width: 30px; height: 30px; border-radius: 8px; background: rgba(113,183,255,.1); color: var(--blue); }
+    .node-toolbar { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line); }
+    .node-list { display: grid; gap: 8px; margin-top: 12px; }
+    .node { display: grid; grid-template-columns: 30px minmax(0,1fr) auto; gap: 10px; align-items: center; padding: 11px; border-radius: 12px; border: 1px solid var(--line); background: rgba(7,17,28,.33); cursor: pointer; }
+    .node:hover, .node.selected { border-color: rgba(0,210,178,.6); background: rgba(0,210,178,.08); }
+    .node-mark { width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center; background: rgba(113,183,255,.12); color: var(--blue); font-size: 11px; font-weight: 800; }
+    .node-main { min-width: 0; }
+    .node-title { display: flex; align-items: center; gap: 7px; min-width: 0; }
+    .node-title strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .node-title small { color: var(--muted); padding: 2px 6px; border: 1px solid var(--line); border-radius: 999px; }
+    .node-meta { margin-top: 2px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 11px; }
+    .node-side { text-align: right; min-width: 66px; }
+    .latency { font-weight: 700; color: var(--accent); }
+    .latency.slow { color: var(--accent-2); }
+    .latency.offline { color: var(--danger); }
+    .badge { display: inline-flex; padding: 3px 6px; border-radius: 999px; font-size: 10px; color: var(--muted); background: rgba(140,165,178,.1); }
+    .detail { position: sticky; top: 18px; }
+    .detail-empty { min-height: 245px; display: grid; place-items: center; text-align: center; color: var(--faint); padding: 22px; }
+    .detail-main { padding: 18px; }
+    .detail-title { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; }
+    .detail-title h3 { margin: 0; font-size: 19px; }
+    .detail-title p { margin: 4px 0 0; color: var(--muted); word-break: break-all; }
+    .kv { display: grid; grid-template-columns: 86px minmax(0,1fr); gap: 7px 10px; margin: 18px 0; color: var(--muted); font-size: 12px; }
+    .kv b { color: var(--text); text-align: right; overflow-wrap: anywhere; }
+    .detail-actions { display: grid; gap: 8px; }
+    .detail-actions .btn { width: 100%; }
+    .notice { padding: 12px; border-radius: 12px; background: rgba(255,203,107,.08); border: 1px solid rgba(255,203,107,.18); color: #d8c18e; font-size: 12px; }
+    .notice b { color: var(--accent-2); }
+    .empty { color: var(--faint); text-align: center; padding: 28px 12px; }
+    .modal { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; padding: 20px; background: rgba(0,0,0,.65); z-index: 5; }
+    .modal.show { display: flex; }
+    .modal-card { width: min(700px,100%); max-height: 90vh; overflow: auto; background: #0c1d2c; border: 1px solid var(--line); border-radius: 16px; box-shadow: 0 28px 90px rgba(0,0,0,.44); }
+    .modal-card textarea { display: block; width: 100%; min-height: 170px; resize: vertical; color: var(--text); background: #07111c; border: 1px solid var(--line); border-radius: 10px; padding: 12px; outline: none; }
+    .modal-actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+    .toast { position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%) translateY(12px); opacity: 0; pointer-events: none; transition: .2s; padding: 10px 14px; border-radius: 999px; background: #eaf4f7; color: #07111c; box-shadow: var(--shadow); z-index: 9; }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    .spin { display: inline-block; width: 12px; height: 12px; border: 2px solid rgba(255,255,255,.22); border-top-color: var(--accent); border-radius: 50%; animation: spin .8s linear infinite; vertical-align: -2px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @media (max-width: 1000px) { .app { grid-template-columns: 1fr; } .sidebar { display: none; } .workspace { grid-template-columns: 1fr; } .detail { position: static; } }
+    @media (max-width: 670px) { main { padding: 18px 12px 30px; } .topbar { display: block; } .status { margin-top: 14px; } .summary { grid-template-columns: repeat(2, minmax(0,1fr)); } .source-form { grid-template-columns: 1fr; } .source-form .btn { width: 100%; } .node { grid-template-columns: 30px minmax(0,1fr); } .node-side { grid-column: 2; text-align: left; } }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand"><div class="mark">N</div><div><strong>NodeAtlas</strong><small>source &amp; reachability</small></div></div>
+      <nav class="nav">
+        <button class="active" data-tab="overview">◈　节点总览</button>
+        <button data-tab="sources">◎　订阅来源</button>
+        <button data-tab="telegram">✦　Telegram 代理</button>
+        <button data-tab="export">↗　导入与导出</button>
+      </nav>
+      <div class="side-note"><b>安全提示</b><br>来源不明的节点可能记录流量、注入内容或盗取凭据。只使用你有权使用的源，并避免在未知代理上登录敏感账户。</div>
+    </aside>
+
+    <main>
+      <div class="topbar">
+        <div><h1>把分散的节点，变成可筛选的清单</h1><p class="subtitle">支持用户添加的 HTTPS 订阅、粘贴常见代理链接，以及 Telegram 专用代理链接。APK 版本支持原生 TCP 可达性检测。</p></div>
+        <div class="status"><span class="dot" id="platformDot"></span><span id="platformStatus">浏览器模式</span></div>
+      </div>
+
+      <section class="grid summary">
+        <div class="card metric"><label>已解析节点</label><strong id="metricNodes">0</strong><span>去重后</span></div>
+        <div class="card metric"><label>已测可达</label><strong id="metricReachable">—</strong><span>TCP 端口可达</span></div>
+        <div class="card metric"><label>来源数量</label><strong id="metricSources">0</strong><span>本地保存</span></div>
+        <div class="card metric"><label>TG 专用</label><strong id="metricTelegram">0</strong><span>不会当作全局 VPN</span></div>
+      </section>
+
+      <section class="grid workspace">
+        <div class="left-column grid">
+          <div class="card" id="sourcesCard">
+            <div class="card-head"><h2>订阅来源</h2><div class="toolbar"><button class="btn ghost" id="demoBtn">加载演示</button><button class="btn primary" id="refreshBtn">刷新全部</button></div></div>
+            <div class="card-body">
+              <div class="source-form">
+                <div class="field"><span>名称</span><input id="sourceName" placeholder="例如：我的订阅" maxlength="40"></div>
+                <div class="field"><span>HTTPS URL</span><input id="sourceUrl" placeholder="https://example.com/subscription.txt" inputmode="url"></div>
+                <button class="btn primary" id="addSourceBtn">添加来源</button>
+              </div>
+              <div class="help">仅抓取 HTTPS；不会自动爬取任意网站。源的内容会在本地解析，应用不会替你购买 API。</div>
+              <div class="source-list" id="sourceList"></div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-head"><h2>节点清单</h2><span class="badge" id="nodeCountBadge">0 个</span></div>
+            <div class="card-body">
+              <div class="toolbar">
+                <div class="field search">⌕<input id="searchInput" placeholder="搜索名称、主机、协议或来源"></div>
+                <div class="field"><select id="typeFilter"><option value="all">全部类型</option><option value="proxy">通用代理</option><option value="telegram">Telegram 专用</option></select></div>
+                <div class="field"><select id="sortSelect"><option value="latency">按可达性</option><option value="name">按名称</option><option value="source">按来源</option><option value="new">按最新加入</option></select></div>
+              </div>
+              <div class="node-toolbar toolbar"><button class="btn warn" id="testBtn">测试可达性</button><button class="btn" id="pasteBtn">粘贴/导入链接</button><button class="btn ghost" id="clearBtn">清空清单</button></div>
+              <div class="node-list" id="nodeList"></div>
+            </div>
+          </div>
+        </div>
+
+        <aside class="card detail" id="detailCard">
+          <div class="card-head"><h2>节点详情</h2><span class="badge" id="detailBadge">未选择</span></div>
+          <div id="detailContent" class="detail-empty">选择一个节点查看参数、复制链接或导出配置。</div>
+        </aside>
+      </section>
+
+      <div class="notice" style="margin-top:16px"><b>当前版本的边界：</b>它负责合法来源聚合、解析、去重、TCP 可达性检测和配置导出；Telegram MTProto 仅能交给 Telegram 使用。它不会伪造“高速”结果，也不会抓取/传播来源不明的节点。</div>
+    </main>
+  </div>
+
+  <div class="modal" id="importModal">
+    <div class="modal-card">
+      <div class="card-head"><h2>导入节点链接或订阅文本</h2><button class="icon-btn" id="closeModal">×</button></div>
+      <div class="card-body">
+        <p class="help" style="margin-top:0">支持 tg://proxy、tg://socks、ss://、socks5://、http(s)://、vmess://、vless://、trojan://，以及由这些链接组成的纯文本/常见 Base64 订阅。</p>
+        <textarea id="importText" placeholder="每行一个链接，或直接粘贴订阅内容"></textarea>
+        <div class="modal-actions"><button class="btn ghost" id="cancelImport">取消</button><button class="btn primary" id="confirmImport">解析并加入</button></div>
+      </div>
+    </div>
+  </div>
+  <div class="toast" id="toast"></div>
+
+  <script>
+    (() => {
+      'use strict';
+
+      const $ = (id) => document.getElementById(id);
+      const isAndroid = !!window.Android && typeof window.Android.getPlatform === 'function';
+      const state = { sources: [], nodes: [], selectedId: null, pending: new Map(), testRun: 0 };
+
+      const demoText = [
+        '# 演示数据：以下域名不可连接，只用于展示解析与去重 UI',
+        'tg://proxy?server=demo-tg.invalid&port=443&secret=0000000000000000000000000000000000000000000000000000000000000000',
+        'tg://socks?server=demo-tg.invalid&port=1080&user=demo&pass=demo',
+        'socks5://demo.invalid:1080',
+        'https://demo.invalid:443#demo-https',
+        'ss://YWVzLTEyOC1nY206ZGVtby1wYXNzQGRlbW8uaW52YWxpZDo0NDM=#demo-ss',
+        'vless://00000000-0000-0000-0000-000000000000@demo.invalid:443?security=tls&type=ws&path=%2F#demo-vless'
+      ].join('\n');
+
+      function loadState() {
+        try { state.sources = JSON.parse(localStorage.getItem('nodeatlas.sources') || '[]'); } catch (_) { state.sources = []; }
+        try { state.nodes = JSON.parse(localStorage.getItem('nodeatlas.nodes') || '[]'); } catch (_) { state.nodes = []; }
+      }
+
+      function persist() {
+        localStorage.setItem('nodeatlas.sources', JSON.stringify(state.sources));
+        localStorage.setItem('nodeatlas.nodes', JSON.stringify(state.nodes));
+      }
+
+      function esc(value) {
+        return String(value ?? '').replace(/[&<>'"]/g, (char) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', "'":'&#39;', '"':'&quot;' })[char]);
+      }
+
+      function toast(message) {
+        const node = $('toast'); node.textContent = message; node.classList.add('show');
+        clearTimeout(toast.timer); toast.timer = setTimeout(() => node.classList.remove('show'), 2500);
+      }
+
+      function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
+
+      function decodeB64(value) {
+        try {
+          let text = String(value).replace(/\s+/g, '').replace(/-/g, '+').replace(/_/g, '/');
+          while (text.length % 4) text += '=';
+          const bytes = Uint8Array.from(atob(text), c => c.charCodeAt(0));
+          return new TextDecoder().decode(bytes);
+        } catch (_) { return ''; }
+      }
+
+      function maybeDecodeSubscription(text) {
+        const trimmed = text.trim();
+        if (!trimmed || /:\/\//.test(trimmed) || trimmed.split(/\s+/).length > 1) return trimmed;
+        const decoded = decodeB64(trimmed);
+        return decoded && /:\/\//.test(decoded) ? decoded : trimmed;
+      }
+
+      function displayName(raw, fallback) {
+        try { return decodeURIComponent(new URL(raw).hash.slice(1)) || fallback; } catch (_) { return fallback; }
+      }
+
+      function nodeKey(node) {
+        return [node.kind, node.host, node.port, node.user || '', node.password || '', node.secret || '', node.raw].join('|').toLowerCase();
+      }
+
+      function baseNode(raw, source) {
+        return { id: uid(), raw, source: source || '手动导入', addedAt: Date.now(), latency: null, status: 'new', kind: 'unknown', name: '', host: '', port: '', user: '', password: '', secret: '', params: {} };
+      }
+
+      function parseOne(raw, source) {
+        raw = String(raw || '').trim().replace(/[),\]}>'"]+$/g, '');
+        if (!raw || raw.startsWith('#') || raw.startsWith('//')) return null;
+        const node = baseNode(raw, source);
+        try {
+          if (raw.startsWith('tg://')) {
+            const url = new URL(raw);
+            const values = Object.fromEntries(url.searchParams.entries());
+            node.kind = url.hostname === 'proxy' ? 'telegram-mtproto' : 'telegram-socks';
+            node.host = values.server || '';
+            node.port = Number(values.port || 0);
+            node.user = values.user || '';
+            node.password = values.pass || '';
+            node.secret = values.secret || '';
+            node.name = url.hostname === 'proxy' ? 'Telegram MTProto' : 'Telegram SOCKS';
+            node.params = values;
+            if (!node.host || !node.port) return null;
+            return node;
+          }
+          if (raw.startsWith('vmess://')) {
+            const data = JSON.parse(decodeB64(raw.slice(8)) || '{}');
+            node.kind = 'vmess'; node.host = data.add || ''; node.port = Number(data.port || 0); node.user = data.id || ''; node.name = data.ps || 'VMess'; node.params = data;
+            if (!node.host || !node.port) return null;
+            return node;
+          }
+          const url = new URL(raw);
+          const protocol = url.protocol.slice(0, -1).toLowerCase();
+          if (!['ss', 'socks5', 'socks', 'http', 'https', 'vless', 'trojan'].includes(protocol)) return null;
+          node.kind = protocol === 'socks' ? 'socks5' : protocol;
+          node.host = url.hostname || '';
+          node.port = Number(url.port || (protocol === 'https' ? 443 : protocol === 'http' ? 80 : 0));
+          node.user = decodeURIComponent(url.username || '');
+          node.password = decodeURIComponent(url.password || '');
+          node.params = Object.fromEntries(url.searchParams.entries());
+          node.name = displayName(raw, protocol.toUpperCase());
+          if (protocol === 'ss' && (!node.host || !node.port || !node.user)) {
+            const payload = decodeB64(url.hostname || '');
+            if (payload.includes('@')) {
+              const at = payload.lastIndexOf('@');
+              const credentials = payload.slice(0, at).split(':');
+              const address = payload.slice(at + 1);
+              const colon = address.lastIndexOf(':');
+              node.user = credentials[0] || '';
+              node.password = credentials.slice(1).join(':');
+              node.host = address.slice(0, colon);
+              node.port = Number(address.slice(colon + 1));
+            }
+          }
+          if (!node.host || !node.port) return null;
+          return node;
+        } catch (_) { return null; }
+      }
+
+      function extractCandidates(text) {
+        const decoded = maybeDecodeSubscription(text);
+        const tokens = decoded.match(/(?:tg:\/\/(?:proxy|socks)|(?:ss|socks5|socks|http|https|vmess|vless|trojan):\/\/)[^\s<>"'`]+/gi) || [];
+        const lines = decoded.split(/\r?\n/).map(line => line.trim()).filter(Boolean);
+        const extras = lines.filter(line => /^(?:tg:\/\/|(?:ss|socks5|socks|http|https|vmess|vless|trojan):\/\/)/i.test(line));
+        return [...new Set([...tokens, ...extras])];
+      }
+
+      function addText(text, source) {
+        const candidates = extractCandidates(text);
+        let added = 0;
+        for (const raw of candidates) {
+          const node = parseOne(raw, source);
+          if (!node) continue;
+          const key = nodeKey(node);
+          if (state.nodes.some(existing => existing.key === key)) continue;
+          node.key = key;
+          state.nodes.push(node); added++;
+        }
+        persist(); render();
+        return { added, total: candidates.length };
+      }
+
+      function typeLabel(kind) {
+        if (kind === 'telegram-mtproto') return 'TG MTProto';
+        if (kind === 'telegram-socks') return 'TG SOCKS';
+        return kind.toUpperCase();
+      }
+
+      function isTelegram(node) { return node.kind === 'telegram-mtproto' || node.kind === 'telegram-socks'; }
+      function isGeneral(node) { return !isTelegram(node); }
+      function mask(value) { if (!value) return '—'; if (value.length < 8) return '••••'; return value.slice(0, 4) + '••••' + value.slice(-4); }
+      function hostPort(node) { return node.host + ':' + node.port; }
+
+      function filteredNodes() {
+        const query = $('searchInput').value.trim().toLowerCase();
+        const filter = $('typeFilter').value;
+        const sort = $('sortSelect').value;
+        let list = state.nodes.filter(node => {
+          const matchesType = filter === 'all' || (filter === 'telegram' ? isTelegram(node) : isGeneral(node));
+          const hay = [node.name, node.host, node.kind, node.source, node.port].join(' ').toLowerCase();
+          return matchesType && (!query || hay.includes(query));
+        });
+        list.sort((a, b) => {
+          if (sort === 'name') return a.name.localeCompare(b.name);
+          if (sort === 'source') return a.source.localeCompare(b.source);
+          if (sort === 'new') return b.addedAt - a.addedAt;
+          const aa = Number.isFinite(a.latency) ? a.latency : 999999;
+          const bb = Number.isFinite(b.latency) ? b.latency : 999999;
+          return aa - bb || a.name.localeCompare(b.name);
+        });
+        return list;
+      }
+
+      function latencyView(node) {
+        if (node.status === 'testing') return '<span class="latency"><span class="spin"></span></span>';
+        if (Number.isFinite(node.latency)) return '<span class="latency ' + (node.latency > 500 ? 'slow' : '') + '">' + node.latency + ' ms</span>';
+        if (node.status === 'offline') return '<span class="latency offline">不可达</span>';
+        if (node.status === 'unsupported') return '<span class="badge">APK 可测</span>';
+        return '<span class="badge">未测试</span>';
+      }
+
+      function renderSources() {
+        const box = $('sourceList');
+        if (!state.sources.length) { box.innerHTML = '<div class="empty">还没有来源。添加你有权使用的 HTTPS 订阅地址，或用“粘贴/导入链接”。</div>'; return; }
+        box.innerHTML = state.sources.map(source => '<div class="source-row">' +
+          '<div><strong>' + esc(source.name) + '</strong><small>' + esc(source.url) + '</small></div>' +
+          '<div class="source-actions"><button class="icon-btn" title="刷新" data-refresh-source="' + esc(source.id) + '">↻</button><button class="icon-btn" title="导入到 sing-box" data-open-source="' + esc(source.id) + '">↗</button><button class="icon-btn" title="删除" data-delete-source="' + esc(source.id) + '">×</button></div>' +
+          '</div>').join('');
+      }
+
+      function renderNodes() {
+        const list = filteredNodes();
+        $('nodeCountBadge').textContent = list.length + ' 个';
+        const box = $('nodeList');
+        if (!list.length) { box.innerHTML = '<div class="empty">没有匹配节点。你可以添加来源或粘贴链接。</div>'; return; }
+        box.innerHTML = list.map(node => {
+          const selected = node.id === state.selectedId ? ' selected' : '';
+          const mark = isTelegram(node) ? 'TG' : typeLabel(node.kind).slice(0, 3);
+          return '<div class="node' + selected + '" data-node-id="' + esc(node.id) + '">' +
+            '<div class="node-mark">' + esc(mark) + '</div>' +
+            '<div class="node-main"><div class="node-title"><strong>' + esc(node.name || hostPort(node)) + '</strong><small>' + esc(typeLabel(node.kind)) + '</small></div><div class="node-meta">' + esc(hostPort(node)) + ' · ' + esc(node.source) + '</div></div>' +
+            '<div class="node-side">' + latencyView(node) + '<div class="node-meta">' + esc(node.status === 'reachable' ? '端口可达' : (isTelegram(node) ? 'Telegram 专用' : '等待检测')) + '</div></div>' +
+            '</div>';
+        }).join('');
+      }
+
+      function renderDetail() {
+        const node = state.nodes.find(item => item.id === state.selectedId);
+        $('detailBadge').textContent = node ? typeLabel(node.kind) : '未选择';
+        if (!node) { $('detailContent').className = 'detail-empty'; $('detailContent').innerHTML = '选择一个节点查看参数、复制链接或导出配置。'; return; }
+        $('detailContent').className = 'detail-main';
+        const tg = isTelegram(node);
+        $('detailContent').innerHTML = '<div class="detail-title"><div><h3>' + esc(node.name || typeLabel(node.kind)) + '</h3><p>' + esc(hostPort(node)) + '</p></div>' + latencyView(node) + '</div>' +
+          '<div class="kv"><span>协议</span><b>' + esc(typeLabel(node.kind)) + '</b><span>来源</span><b>' + esc(node.source) + '</b><span>端口状态</span><b>' + esc(node.status === 'reachable' ? '可达' : node.status === 'offline' ? '不可达' : '未检测') + '</b>' +
+          (node.user ? '<span>账号</span><b>' + esc(mask(node.user)) + '</b>' : '') + (node.secret ? '<span>Secret</span><b>' + esc(mask(node.secret)) + '</b>' : '') + '</div>' +
+          '<div class="detail-actions">' +
+          (tg ? '<button class="btn primary" id="openTgBtn">在 Telegram 中打开</button><button class="btn" id="copyNodeBtn">复制 TG 链接</button>' : '<button class="btn primary" id="exportNodeBtn">导出 sing-box 配置</button><button class="btn" id="copyNodeBtn">复制节点链接</button>') +
+          '<button class="btn ghost" id="testOneBtn">重新测试端口</button></div>' +
+          '<div class="notice" style="margin-top:14px">' + (tg ? '<b>Telegram 专用：</b>它只适用于 Telegram 的代理设置，不会把手机所有流量变成 VPN。' : '<b>未知节点风险：</b>TCP 可达不等于可信或高速，请先验证来源、协议和服务条款。') + '</div>';
+        if (tg) $('openTgBtn').onclick = () => openExternal(node.raw);
+        $('copyNodeBtn').onclick = () => copyText(node.raw);
+        $('testOneBtn').onclick = () => testNode(node);
+        if (!tg) $('exportNodeBtn').onclick = () => downloadSingBox(node);
+      }
+
+      function render() {
+        $('metricNodes').textContent = state.nodes.length;
+        const reachable = state.nodes.filter(node => node.status === 'reachable').length;
+        $('metricReachable').textContent = reachable || '—';
+        $('metricSources').textContent = state.sources.length;
+        $('metricTelegram').textContent = state.nodes.filter(isTelegram).length;
+        renderSources(); renderNodes(); renderDetail();
+      }
+
+      function copyText(text) {
+        if (isAndroid && Android.copyText) { Android.copyText(text); return; }
+        navigator.clipboard?.writeText(text).then(() => toast('已复制')).catch(() => toast('复制失败，请手动选择')); 
+      }
+
+      function openExternal(url) {
+        if (isAndroid && Android.openUrl) { Android.openUrl(url); return; }
+        window.open(url, '_blank');
+      }
+
+      function download(name, content, type) {
+        if (isAndroid && Android.shareText) { Android.shareText(name, content); toast('已交给系统分享/保存'); return; }
+        const blob = new Blob([content], {type: type || 'text/plain;charset=utf-8'});
+        const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = name; link.click();
+        setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+      }
+
+      function singBoxOutbound(node) {
+        const common = { tag: 'proxy', server: node.host, server_port: Number(node.port) };
+        if (node.kind === 'socks5' || node.kind === 'socks') return Object.assign({ type: 'socks' }, common, node.user ? {username: node.user, password: node.password} : {});
+        if (node.kind === 'http' || node.kind === 'https') return Object.assign({ type: 'http' }, common, node.user ? {username: node.user, password: node.password} : {});
+        if (node.kind === 'ss') return Object.assign({ type: 'shadowsocks', method: node.user, password: node.password }, common);
+        if (node.kind === 'vmess') return Object.assign({ type: 'vmess', uuid: node.user, security: node.params.scy || 'auto' }, common);
+        if (node.kind === 'vless') return Object.assign({ type: 'vless', uuid: node.user, tls: {enabled: node.params.security === 'tls', server_name: node.params.sni || node.host} }, common);
+        if (node.kind === 'trojan') return Object.assign({ type: 'trojan', password: node.password, tls: {enabled: true, server_name: node.params.sni || node.host} }, common);
+        return null;
+      }
+
+      function singBoxConfig(node) {
+        const outbound = singBoxOutbound(node);
+        if (!outbound) return null;
+        return { log: {level: 'warn'}, inbounds: [{type: 'tun', tag: 'tun-in', address: ['172.19.0.1/30'], auto_route: true, strict_route: true}], outbounds: [outbound, {type: 'direct', tag: 'direct'}], route: {auto_detect_interface: true, final: 'proxy'} };
+      }
+
+      function downloadSingBox(node) {
+        const config = singBoxConfig(node);
+        if (!config) { toast('此协议暂不生成 sing-box 配置，请导出原始链接'); return; }
+        download('nodeatlas-' + (node.name || node.kind) + '.json', JSON.stringify(config, null, 2), 'application/json;charset=utf-8');
+        toast('已导出配置文件');
+      }
+
+      function openSingBoxSource(source) {
+        const link = 'sing-box://import-remote-profile?url=' + encodeURIComponent(source.url) + '#' + encodeURIComponent(source.name);
+        if (isAndroid) { openExternal(link); } else { copyText(link); toast('已复制 sing-box 导入链接'); }
+      }
+
+      function requestFetch(url) {
+        return new Promise((resolve, reject) => {
+          if (isAndroid && Android.fetchText) {
+            const id = uid(); state.pending.set(id, {resolve, reject}); Android.fetchText(url, id); return;
+          }
+          fetch(url, {cache: 'no-store'}).then(response => { if (!response.ok) throw new Error('HTTP ' + response.status); return response.text(); }).then(resolve).catch(reject);
+        });
+      }
+
+      window.__nativeFetchResult = (id, ok, value, error) => { const item = state.pending.get(id); if (!item) return; state.pending.delete(id); ok ? item.resolve(value) : item.reject(new Error(error || '抓取失败')); };
+      window.__nativeTcpResult = (id, ok, value, error) => { const item = state.pending.get(id); if (!item) return; state.pending.delete(id); ok ? item.resolve(Number(value)) : item.reject(new Error(error || '不可达')); };
+
+      async function refreshSource(source) {
+        source.loading = true; renderSources();
+        try { const content = await requestFetch(source.url); const result = addText(content, source.name); source.lastUpdated = Date.now(); source.lastCount = result.added; persist(); renderSources(); toast(source.name + '：新增 ' + result.added + ' 个节点'); }
+        catch (error) { toast(source.name + '：' + (error.message || '抓取失败')); }
+        finally { source.loading = false; renderSources(); }
+      }
+
+      async function refreshAll() {
+        if (!state.sources.length) { toast('还没有来源，先添加一个 HTTPS 订阅'); return; }
+        $('refreshBtn').disabled = true; $('refreshBtn').innerHTML = '<span class="spin"></span> 刷新中';
+        await Promise.all(state.sources.map(refreshSource));
+        $('refreshBtn').disabled = false; $('refreshBtn').textContent = '刷新全部'; render();
+      }
+
+      function testNode(node) {
+        node.status = 'testing'; node.latency = null; render();
+        if (!isAndroid || !Android.testTcp) { node.status = 'unsupported'; persist(); render(); toast('浏览器不能直接进行原生 TCP 测速，请在 APK 中测试'); return; }
+        const id = uid(); state.pending.set(id, { resolve: (latency) => { node.latency = latency; node.status = 'reachable'; persist(); render(); }, reject: (error) => { node.status = 'offline'; persist(); render(); } });
+        Android.testTcp(node.host, Number(node.port), id);
+      }
+
+      function testAll() {
+        if (!state.nodes.length) { toast('没有可测试的节点'); return; }
+        state.testRun++;
+        state.nodes.forEach((node, index) => setTimeout(() => testNode(node), index * 80));
+      }
+
+      function addSource() {
+        const name = $('sourceName').value.trim() || '未命名来源';
+        const url = $('sourceUrl').value.trim();
+        try { const parsed = new URL(url); if (parsed.protocol !== 'https:') throw new Error('只接受 HTTPS 来源'); } catch (error) { toast(error.message || 'URL 无效'); return; }
+        if (state.sources.some(source => source.url === url)) { toast('这个来源已经存在'); return; }
+        state.sources.push({id: uid(), name, url, addedAt: Date.now(), lastUpdated: 0, lastCount: 0});
+        $('sourceName').value = ''; $('sourceUrl').value = ''; persist(); render(); toast('来源已添加');
+      }
+
+      function deleteSource(id) { state.sources = state.sources.filter(source => source.id !== id); persist(); render(); }
+      function clearNodes() { state.nodes = []; state.selectedId = null; persist(); render(); }
+
+      function openImport() { $('importText').value = ''; $('importModal').classList.add('show'); setTimeout(() => $('importText').focus(), 20); }
+      function closeImport() { $('importModal').classList.remove('show'); }
+      function confirmImport() { const result = addText($('importText').value, '手动导入'); closeImport(); toast('解析完成：新增 ' + result.added + ' 个节点'); }
+
+      function loadDemo() { const result = addText(demoText, '演示数据'); toast('演示数据已加载：' + result.added + ' 个'); }
+
+      function wire() {
+        $('addSourceBtn').onclick = addSource; $('refreshBtn').onclick = refreshAll; $('testBtn').onclick = testAll; $('pasteBtn').onclick = openImport; $('clearBtn').onclick = () => { if (confirm('清空本地节点清单？')) clearNodes(); }; $('demoBtn').onclick = loadDemo;
+        $('searchInput').oninput = renderNodes; $('typeFilter').onchange = renderNodes; $('sortSelect').onchange = renderNodes;
+        $('closeModal').onclick = closeImport; $('cancelImport').onclick = closeImport; $('confirmImport').onclick = confirmImport; $('importModal').onclick = event => { if (event.target === $('importModal')) closeImport(); };
+        document.querySelectorAll('[data-tab]').forEach(button => button.onclick = () => { document.querySelectorAll('[data-tab]').forEach(item => item.classList.remove('active')); button.classList.add('active'); const tab = button.dataset.tab; if (tab === 'sources') $('sourcesCard').scrollIntoView({behavior:'smooth'}); if (tab === 'telegram') { $('typeFilter').value = 'telegram'; renderNodes(); document.querySelector('.node-list').scrollIntoView({behavior:'smooth'}); } if (tab === 'overview') { $('typeFilter').value = 'all'; renderNodes(); window.scrollTo({top:0,behavior:'smooth'}); } if (tab === 'export') openImport(); });
+        $('sourceList').onclick = event => { const refresh = event.target.closest('[data-refresh-source]'); const remove = event.target.closest('[data-delete-source]'); const open = event.target.closest('[data-open-source]'); if (refresh) refreshSource(state.sources.find(item => item.id === refresh.dataset.refreshSource)); if (remove) deleteSource(remove.dataset.deleteSource); if (open) openSingBoxSource(state.sources.find(item => item.id === open.dataset.openSource)); };
+        $('nodeList').onclick = event => { const row = event.target.closest('[data-node-id]'); if (!row) return; state.selectedId = row.dataset.nodeId; render(); };
+      }
+
+      loadState(); wire();
+      $('platformStatus').textContent = isAndroid ? 'Android 原生桥已连接' : '浏览器模式';
+      $('platformDot').classList.toggle('off', !isAndroid);
+      render();
+    })();
+  </script>
+</body>
+</html>
