@@ -22,7 +22,7 @@ import de.blinkt.openvpn.VpnProfile;
 import de.blinkt.openvpn.core.*;
 
 /** Single APK UI: the upstream native VPN engine and notifications live in this application. */
-public final class MainActivity extends Activity implements VpnStatus.StateListener, VpnStatus.ByteCountListener {
+public final class MainActivity extends Activity implements VpnStatus.StateListener, VpnStatus.ByteCountListener, VpnStatus.LogListener {
     private static final int WHITE=Color.WHITE, INK=0xff142342, MUTED=0xff9baed3, CYAN=0xff60e4dd;
     private static final List<Node> nodes=new ArrayList<>();
     private static Node selected;
@@ -32,6 +32,9 @@ public final class MainActivity extends Activity implements VpnStatus.StateListe
     private final Handler main=new Handler(Looper.getMainLooper());
     private final ExecutorService worker=Executors.newSingleThreadExecutor();
     private final ExecutorService control=Executors.newSingleThreadExecutor();
+    private final ExecutorService verification=Executors.newSingleThreadExecutor();
+    private boolean verifying;
+    private long verifyDeadline, attemptStarted;
     private final AttemptWindow window=new AttemptWindow();
     private final List<String> diagnostics=new ArrayList<>();
     private String expectedProfile, lastState="", failure="";
@@ -46,6 +49,7 @@ public final class MainActivity extends Activity implements VpnStatus.StateListe
     private IOpenVPNServiceInternal engine;
     private final Runnable watchdog=new Runnable(){public void run(){
         if(destroyed)return;
+        if(verifying&&SystemClock.elapsedRealtime()>=verifyDeadline)endAttempt("隧道 HTTPS 验证超时",true);
         if(window.expired(SystemClock.elapsedRealtime())){
             if(window.stage==AttemptWindow.Stage.CONNECTING)endAttempt("25 秒内未建立隧道（"+lastState+"）",true);
             else {auto=false;switching=false;connecting=false;connected=false;stopUnconfirmed=true;window.clear();
@@ -63,7 +67,7 @@ public final class MainActivity extends Activity implements VpnStatus.StateListe
         if(state!=null)page=state.getString("page","home");
         Intent service=new Intent(this,OpenVPNService.class).setAction(OpenVPNService.START_SERVICE);
         bound=bindService(service,engineConnection,Context.BIND_AUTO_CREATE);
-        VpnStatus.addStateListener(this);VpnStatus.addByteCountListener(this);
+        VpnStatus.addStateListener(this);VpnStatus.addByteCountListener(this);VpnStatus.addLogListener(this);
         render();main.post(watchdog);
         if(!getPreferences(0).getBoolean("public_node_notice",false))notice();
         else if(nodes.isEmpty())refresh();
@@ -226,7 +230,7 @@ public final class MainActivity extends Activity implements VpnStatus.StateListe
         getPreferences(0).edit().putString("last_diagnostics",String.join("\n",diagnostics)).apply();
     }
     private void showDiagnostics(){
-        String report="极光 0.3 · OpenVPN TCP\n"+feedNote+"\n"+
+        String report="极光 0.4 · OpenVPN TCP\n"+feedNote+"\n"+
             (diagnostics.isEmpty()?getPreferences(0).getString("last_diagnostics","尚无连接记录"):String.join("\n",diagnostics));
         new AlertDialog.Builder(this).setTitle("连接诊断（无密钥）").setMessage(report)
             .setPositiveButton("关闭",null).setNeutralButton("复制",(d,w)->{
@@ -266,7 +270,7 @@ public final class MainActivity extends Activity implements VpnStatus.StateListe
     private void next(){
         if(destroyed)return;
         if(attempt>=queue.size()){auto=false;connecting=false;status="候选均未连通，请刷新节点或更换网络";record(status);render();return;}
-        reattach=false;selected=queue.get(attempt++);connecting=true;connected=false;switching=false;bytesIn=bytesOut=0;
+        verifying=false;attemptStarted=System.currentTimeMillis();reattach=false;selected=queue.get(attempt++);connecting=true;connected=false;switching=false;bytesIn=bytesOut=0;
         failure="";lastState="启动内核";window.start(SystemClock.elapsedRealtime());
         status="正在连接";page="home";render();record("尝试 "+attempt+"/"+queue.size()+" "+selected.ip+":"+selected.port+" "+selected.country);
         if(Build.VERSION.SDK_INT>=33 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)!=PackageManager.PERMISSION_GRANTED)
@@ -289,7 +293,7 @@ public final class MainActivity extends Activity implements VpnStatus.StateListe
     }
     private void endAttempt(String reason,boolean retry){
         if(window.stage==AttemptWindow.Stage.STOPPING)return;
-        failure=reason;record(reason);switching=retry&&auto&&attempt<queue.size();
+        verifying=false;failure=reason;record(reason);switching=retry&&auto&&attempt<queue.size();
         if(!switching)auto=false;
         connected=false;connecting=true;status="正在停止当前尝试";
         window.stopping(SystemClock.elapsedRealtime());int token=window.generation;
@@ -318,26 +322,45 @@ public final class MainActivity extends Activity implements VpnStatus.StateListe
         if(expectedProfile!=null&&!expectedProfile.equals(VpnStatus.getLastConnectedVPNProfile()))return;
         if(window.stage==AttemptWindow.Stage.IDLE){
             // Reattaching after Activity recreation may observe an existing real connection.
-            if(reattach&&level==ConnectionStatus.LEVEL_CONNECTED){connected=true;connecting=false;status="已连接";}
+            if(reattach&&level==ConnectionStatus.LEVEL_CONNECTED){reattach=false;window.start(SystemClock.elapsedRealtime());window.connected();verifyTunnel();}
             else if(level==ConnectionStatus.LEVEL_NOTCONNECTED){connected=false;connecting=false;if(stopUnconfirmed){stopUnconfirmed=false;status="内核已停止 · 未连接";}}
             updateLabels();return;
         }
         if(!state.equals(lastState)){lastState=state;record("内核状态 "+state);}
         if(level==ConnectionStatus.LEVEL_CONNECTED){
-            if(window.connected()||window.stage==AttemptWindow.Stage.CONNECTED){connected=true;connecting=false;auto=false;status="已连接";record("隧道已建立");}
+            if(window.connected())verifyTunnel();
         }else if(level==ConnectionStatus.LEVEL_NOTCONNECTED||level==ConnectionStatus.LEVEL_AUTH_FAILED){
             endAttempt(level==ConnectionStatus.LEVEL_AUTH_FAILED?"认证失败":"内核结束连接（"+state+"）",true);
             if(window.stopped())afterStopped();
         }else if(level==ConnectionStatus.LEVEL_NONETWORK){endAttempt("手机网络不可用",false);}
         else if(level==ConnectionStatus.LEVEL_VPNPAUSED){endAttempt("VPN 已暂停",false);}
         else if(level==ConnectionStatus.LEVEL_WAITING_FOR_USER_INPUT){status="内核等待授权或输入";}
-        else {if(window.stage==AttemptWindow.Stage.CONNECTED){window.start(SystemClock.elapsedRealtime());auto=false;}connecting=true;connected=false;status=state.equals("CONNECTRETRY")?"线路未响应，有限重试中":"正在建立隧道";}
+        else {if(window.stage==AttemptWindow.Stage.CONNECTED){verifying=false;window.start(SystemClock.elapsedRealtime());auto=false;}connecting=true;connected=false;status=state.equals("CONNECTRETRY")?"线路未响应，有限重试中":"正在建立隧道";}
         updateLabels();
     });}
+    private void verifyTunnel(){
+        verifying=true;connected=false;connecting=true;verifyDeadline=SystemClock.elapsedRealtime()+22000;
+        status="隧道已建立，正在验证 HTTPS";record(status);int token=window.generation;
+        verification.execute(()->{
+            try{TunnelCheck.Proof proof=TunnelCheck.request(this,true);main.post(()->{
+                if(destroyed||!window.active(token)||!verifying)return;
+                verifying=false;connected=true;connecting=false;auto=false;
+                status="已验证联网 · "+proof.ip;record("VPN 网络内 HTTPS 成功，收到 "+proof.bytes+" 字节，出口 "+proof.ip);updateLabels();
+            });}catch(Exception error){main.post(()->{
+                if(!destroyed&&window.active(token)&&verifying)endAttempt("隧道 HTTPS 失败："+error.getClass().getSimpleName()+" · "+error.getMessage(),true);
+            });}
+        });updateLabels();
+    }
+    @Override public void newLog(LogItem item){
+        if(item.getLogtime()<attemptStarted)return;
+        String message=DiagnosticLog.error(item.getString(this));if(message==null)return;
+        main.post(()->{if(!destroyed&&(connecting||verifying))record("原生错误："+message);});
+    }
     @Override public void setConnectedVPN(String uuid){}
     @Override public void updateByteCount(long in,long out,long diffIn,long diffOut){main.post(()->{bytesIn=in;bytesOut=out;updateLabels();});}
     private void updateLabels(){if(statusView!=null){String detail="";
         if(window.stage==AttemptWindow.Stage.CONNECTING)detail="\n"+attempt+" / "+queue.size()+" · 剩余 "+window.seconds(SystemClock.elapsedRealtime())+" 秒";
+        if(verifying)detail="\nHTTPS 验证剩余 "+Math.max(0,(verifyDeadline-SystemClock.elapsedRealtime()+999)/1000)+" 秒";
         if(window.stage==AttemptWindow.Stage.STOPPING)detail="\n停止等待 "+window.seconds(SystemClock.elapsedRealtime())+" 秒";
         statusView.setText(status+detail);}if(statsView!=null)statsView.setText(String.format(Locale.ROOT,"↓ %.2f MB    ↑ %.2f MB",bytesIn/1048576.0,bytesOut/1048576.0));}
     private void speedTest(){
@@ -369,11 +392,11 @@ public final class MainActivity extends Activity implements VpnStatus.StateListe
     }
     private String clock(long t){return t==0?"未检测":new SimpleDateFormat("HH:mm:ss",Locale.getDefault()).format(new Date(t));}
     private void toast(String s){if(!destroyed)Toast.makeText(this,s,Toast.LENGTH_LONG).show();}
-    private void about(){new AlertDialog.Builder(this).setTitle("极光 · 免费线路版 0.3")
+    private void about(){new AlertDialog.Builder(this).setTitle("极光 · 免费线路版 0.4")
         .setMessage("同一 APK 内集成 OpenVPN for Android 内核，无需手填 API 或节点配置。\n\n公开源：VPN Gate\n标称带宽来自源站，不保证实际速度。延迟仅是端口连接耗时。自动优选最多尝试 6 条不同线路，每条连接上限 25 秒，停止等待上限 8 秒。停止未确认时结束自动连接，提示在系统 VPN 设置断开；自动换线仅在此页面存活时运行。\n\n公共节点可能记录连接与流量，不提供匿名保证。隧道断开时系统可能恢复直连。可在 Android VPN 设置中按需启用始终开启和阻止无 VPN 连接。\n\n测试流量发往 Cloudflare，约 1 MB。无账号、支付、广告或自建后台。节点源被阻断时，无法保证首次获取成功。\n\n内核许可证与源代码见本项目 README。")
         .setPositiveButton("知道了",null).setNeutralButton("内核诊断",(d,w)->startActivity(new Intent(this,de.blinkt.openvpn.activities.MainActivity.class))).show();}
     @Override protected void onSaveInstanceState(Bundle s){super.onSaveInstanceState(s);s.putString("page",page);}
-    @Override protected void onDestroy(){destroyed=true;auto=false;main.removeCallbacksAndMessages(null);worker.shutdownNow();control.shutdownNow();VpnStatus.removeStateListener(this);VpnStatus.removeByteCountListener(this);if(bound)unbindService(engineConnection);super.onDestroy();}
+    @Override protected void onDestroy(){destroyed=true;auto=false;main.removeCallbacksAndMessages(null);worker.shutdownNow();control.shutdownNow();verification.shutdownNow();VpnStatus.removeLogListener(this);VpnStatus.removeStateListener(this);VpnStatus.removeByteCountListener(this);if(bound)unbindService(engineConnection);super.onDestroy();}
     private final class PowerView extends View {
         private final Paint paint=new Paint(Paint.ANTI_ALIAS_FLAG);
         PowerView(){super(MainActivity.this);setLayerType(View.LAYER_TYPE_SOFTWARE,null);}

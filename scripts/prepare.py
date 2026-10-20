@@ -21,6 +21,9 @@ def prepare():
     if (ROOT / "overlay/assets").exists():
         shutil.copytree(ROOT / "overlay/assets", UPSTREAM / "main/src/main/assets", dirs_exist_ok=True)
 
+    if (ROOT / "overlay/androidTest").exists():
+        shutil.copytree(ROOT / "overlay/androidTest", UPSTREAM / "main/src/androidTest", dirs_exist_ok=True)
+
     android = "http://schemas.android.com/apk/res/android"
     tools = "http://schemas.android.com/tools"
     ET.register_namespace("android", android)
@@ -59,9 +62,11 @@ def prepare():
     content = gradle.read_text()
     if 'applicationId = "com.aurora.freevpn"' not in content:
         content = content.replace("defaultConfig {", 'defaultConfig {\n        applicationId = "com.aurora.freevpn"', 1)
+    if 'testInstrumentationRunner = "com.aurora.vpn.RealConnectionInstrumentation"' not in content:
+        content = content.replace("defaultConfig {", 'defaultConfig {\n        testInstrumentationRunner = "com.aurora.vpn.RealConnectionInstrumentation"', 1)
     content = content.replace("minSdk = 21", "minSdk = 26")
-    content = re.sub(r'versionCode = \d+', 'versionCode = 221', content, count=1)
-    content = re.sub(r'versionName = "[^"]+"', 'versionName = "0.3.0-alpha"', content, count=1)
+    content = re.sub(r'versionCode = \d+', 'versionCode = 222', content, count=1)
+    content = re.sub(r'versionName = "[^"]+"', 'versionName = "0.4.0-alpha"', content, count=1)
     # One installable APK covering the same four ABIs, without simultaneous split packagers.
     content = content.replace("isEnable = true", "isEnable = false")
     if 'baseline = file("lint-baseline.xml")' not in content:
