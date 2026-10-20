@@ -49,6 +49,12 @@ jobs:
         with:
           ndk-version: r28
 
+      - name: Ensure the exact sing-box NDK is selected
+        run: |
+          yes | sdkmanager --licenses >/dev/null 2>&1 || true
+          sdkmanager "ndk;28.0.13004108"
+          echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/28.0.13004108" >> "$GITHUB_ENV"
+
       - name: Install gomobile toolchain
         run: |
           go install github.com/sagernet/gomobile/cmd/gomobile@v0.1.13
