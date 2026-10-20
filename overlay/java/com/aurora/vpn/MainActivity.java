@@ -138,7 +138,7 @@ public final class MainActivity extends Activity implements VpnStatus.StateListe
         int found=0;
         Set<String> favorites=getPreferences(0).getStringSet("favorites",Collections.emptySet());
         for(Node n:nodes){
-            if(!((n.country+" "+n.code+" "+n.ip).toLowerCase(Locale.ROOT).contains(search.toLowerCase(Locale.ROOT))))continue;
+            if(!n.matches(search))continue;
             found++;
             LinearLayout row=new LinearLayout(this);row.setPadding(dp(14),dp(12),dp(14),dp(12));row.setGravity(Gravity.CENTER_VERTICAL);row.setBackground(background(WHITE,18));
             LinearLayout.LayoutParams rp=new LinearLayout.LayoutParams(-1,-2);rp.topMargin=dp(10);rows.addView(row,rp);

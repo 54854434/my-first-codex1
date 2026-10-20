@@ -40,6 +40,16 @@ jobs:
         run: python3 scripts/prepare.py
       - name: Build integrated APK
         run: bash upstream/gradlew -p upstream :main:compileUiOvpn2DebugJavaWithJavac :main:assembleUiOvpn2Debug --stacktrace
+      - name: Verify snapshot inside the final APK
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import subprocess
+          apks=list(Path('upstream/main/build/outputs/apk').rglob('*.apk'))
+          assert apks, 'No APK produced'
+          for apk in apks:
+              subprocess.run(['java','-cp','.checks','com.aurora.vpn.ApkSeedCheck',str(apk)],check=True)
+          PY
       - uses: actions/upload-artifact@v4
         with:
           name: aurora-free-vpn-debug

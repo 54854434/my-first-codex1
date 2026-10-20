@@ -52,6 +52,7 @@ cd my-first-codex1
 git checkout codex/aurora-vpn-android
 git submodule update --init --recursive
 bash scripts/test.sh
+java -cp .checks com.aurora.vpn.GateSeedBuilder overlay/assets/gate-seed.csv
 python3 scripts/prepare.py
 bash upstream/gradlew -p upstream :main:assembleUiOvpn2Debug
 ```
