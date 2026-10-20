@@ -158,6 +158,22 @@ jobs:
           )
           if universal_changed != 1 or abi_changed != 1:
               raise SystemExit("Could not apply arm64-only APK packaging overlay")
+          build_text, jni_changed = re.subn(
+              r'(?s)(packaging\s*\{\s*jniLibs\s*\{\s*useLegacyPackaging\s*=\s*true)',
+              r'''\1
+            // NodeAtlas launches a WebView surface and does not use the upstream terminal,
+            // camera barcode scanner, or JSON editor native libraries.
+            excludes += setOf(
+                "**/libghostty_android.so",
+                "**/libandroid-tree-sitter.so",
+                "**/libtree-sitter-json.so",
+                "**/libimage_processing_util_jni.so",
+            )''',
+              build_text,
+              count=1,
+          )
+          if jni_changed != 1:
+              raise SystemExit("Could not apply unused JNI packaging overlay")
           build_file.write_text(build_text)
           PY
 
