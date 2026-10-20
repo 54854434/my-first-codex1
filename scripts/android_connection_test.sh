@@ -33,6 +33,7 @@ except Exception:
 print(json.dumps(report,ensure_ascii=False,indent=2))
 assert report['success'], 'Android actual connection failed; see proof for native errors'
 assert report['native_connected'] and report['android_vpn_network'] and report['egress_changed']
+assert report['probe_bound_to_physical_network'] and report['probe_while_vpn_active_ms']>0
 assert report['https_bytes']>0
 assert report['persisted_priority'] and report['reconnect_attempts']==1 and report['reconnect_https_bytes']>0
 PY

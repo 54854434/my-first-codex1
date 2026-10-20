@@ -5,6 +5,9 @@ import java.net.*;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.BooleanSupplier;
+import javax.net.SocketFactory;
 
 public final class Discovery {
     public static final String SOURCE="https://www.vpngate.net/api/iphone/";
@@ -57,7 +60,9 @@ public final class Discovery {
     public static List<Node> find() throws Exception {
         return probe(GateParser.parse(download()));
     }
-    public static List<Node> probe(List<Node> all) throws Exception {
+    public static List<Node> probe(List<Node> all) throws Exception {return probe(all,SocketFactory.getDefault(),()->true);}
+    public static List<Node> probe(List<Node> all,SocketFactory factory,BooleanSupplier networkValid) throws Exception {
+        AtomicBoolean changed=new AtomicBoolean(false);
         // Bounded checks: one TCP connection per candidate, no payload or broad network scanning.
         List<Node> candidates=balanced(all,40);
         ExecutorService pool=Executors.newFixedThreadPool(4);
@@ -65,14 +70,17 @@ public final class Discovery {
             List<Callable<Void>> checks=new ArrayList<>();
             for(Node n:candidates)checks.add(()->{
                 long start=System.nanoTime();
-                try(Socket s=new Socket()) {
+                try(Socket s=factory.createSocket()) {
+                    if(!networkValid.getAsBoolean()){changed.set(true);throw new IOException("Probe network changed");}
                     s.connect(new InetSocketAddress(n.ip,n.port),1800);
+                    if(!networkValid.getAsBoolean()){changed.set(true);throw new IOException("Probe network changed");}
                     n.latencyMs=(int)Math.max(1,(System.nanoTime()-start)/1000000);
                 }catch(IOException ignored){n.latencyMs=-2;}
                 n.checkedAt=System.currentTimeMillis();return null;
             });
             for(Future<Void> f:pool.invokeAll(checks,25,TimeUnit.SECONDS)){if(!f.isCancelled())f.get();}
         }finally{pool.shutdownNow();}
+        if(changed.get()||!networkValid.getAsBoolean())throw new IOException("Probe network changed; discard results");
         candidates.sort(Comparator.comparingInt((Node n)->n.latencyMs>0?n.latencyMs:Integer.MAX_VALUE)
             .thenComparing(Comparator.comparingLong((Node n)->n.advertisedBps).reversed()));
         return candidates;

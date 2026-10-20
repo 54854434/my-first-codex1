@@ -51,20 +51,32 @@ public final class RealConnectionInstrumentation extends Instrumentation {
                     if(!(Boolean)value("connected"))throw new IOException("VPN disconnected after HTTPS verification");
                     success=true;break;
                 }
-                if((Integer)value("attempt")>0&&!(Boolean)value("connecting")&&!(Boolean)value("auto"))
+                if(!(Boolean)value("busy")&&!(Boolean)value("permissionPending")&&!(Boolean)value("connecting")&&!(Boolean)value("auto"))
                     throw new IOException("Candidates exhausted: "+value("status"));
                 SystemClock.sleep(500);
             }
             if(!success)throw new IOException("No verified VPN connection within test deadline");
             Node first=(Node)value("selected");report.put("first_endpoint",first.ip+":"+first.port);report.put("first_source",first.source);
             report.put("first_attempts",value("attempt"));
+            DirectNetworkProbe physical=DirectNetworkProbe.capture(context);
+            android.net.ConnectivityManager cm=(android.net.ConnectivityManager)context.getSystemService(Context.CONNECTIVITY_SERVICE);
+            android.net.NetworkCapabilities physicalCaps=cm.getNetworkCapabilities(physical.network);
+            if(physicalCaps==null||physicalCaps.hasTransport(android.net.NetworkCapabilities.TRANSPORT_VPN))
+                throw new IOException("Direct probe selected the VPN network");
+            if(physical.network.equals(cm.getActiveNetwork()))throw new IOException("Direct and VPN routes unexpectedly identical");
+            physical.check(context,first);
+            report.put("probe_bound_to_physical_network",true);report.put("direct_probe_label",physical.label);
+            report.put("probe_while_vpn_active_ms",first.latencyMs);
             call("toggle");wait=SystemClock.elapsedRealtime()+12000;
             while((Boolean)value("connecting")&&SystemClock.elapsedRealtime()<wait)SystemClock.sleep(200);
             if((Boolean)value("connecting")||(Boolean)value("stopUnconfirmed"))throw new IOException("Disconnect did not complete");
             // Recreate the Activity to prove local evidence persists across a real lifecycle restart.
             runOnMainSync(()->activity.finish());SystemClock.sleep(1000);
             activity=(MainActivity)startActivitySync(new Intent(context,MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
-            call("connectBest");Node preferred=(Node)value("selected");
+            call("connectBest");wait=SystemClock.elapsedRealtime()+35000;
+            while((Boolean)value("busy")&&SystemClock.elapsedRealtime()<wait)SystemClock.sleep(200);
+            if((Boolean)value("busy"))throw new IOException("Direct preflight did not complete");
+            Node preferred=(Node)value("selected");
             if(!preferred.ip.equals(first.ip)||preferred.port!=first.port)throw new IOException("Verified node was not preferred after Activity restart");
             report.put("persisted_priority",true);success=false;wait=SystemClock.elapsedRealtime()+65000;
             while(SystemClock.elapsedRealtime()<wait){

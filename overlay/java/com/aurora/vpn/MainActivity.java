@@ -28,7 +28,11 @@ public final class MainActivity extends Activity implements VpnStatus.StateListe
     private static Node selected;
     private static long refreshedAt;
     private static String feedNote="尚未获取节点", feedError="";
-    private static boolean probeViaVpn;
+    private static String probeLabel="直连网络尚未检测";
+    private DirectNetworkProbe attemptNetwork;
+    private boolean preflighting;
+    private int preflightGeneration;
+    private Future<?> preflightFuture;
     private final Handler main=new Handler(Looper.getMainLooper());
     private final ExecutorService worker=Executors.newSingleThreadExecutor();
     private final ExecutorService control=Executors.newSingleThreadExecutor();
@@ -141,7 +145,7 @@ public final class MainActivity extends Activity implements VpnStatus.StateListe
     }
     private void renderNodes(){
         body.addView(text("发现免费线路",26,INK));
-        body.addView(text("VPN Gate / VPNBook · 免费公共线路\n延迟为当前网络 TCP 探测；带宽为源站标称值"+(probeViaVpn?"\n本次检测经过手机现有 VPN，直连结果可能不同。":""),12,0xff72809b));
+        body.addView(text("VPN Gate / VPNBook · 免费公共线路\n延迟为绑定底层网络的 TCP 建连耗时；带宽为源站标称值"+"\n"+probeLabel,12,0xff72809b));
         body.addView(text(feedNote,12,0xff596d93));
         if(!feedError.isEmpty())body.addView(text(feedError,13,0xffa95637));
         EditText filter=new EditText(this);filter.setSingleLine(true);filter.setTextSize(15);filter.setHint("搜索国家 / IP");filter.setText(search);
@@ -152,7 +156,8 @@ public final class MainActivity extends Activity implements VpnStatus.StateListe
     private void fillRows(){
         if(rows==null)return;rows.removeAllViews();
         if(nodes.isEmpty())rows.addView(text(busy?"正在获取公开线路，请稍候…":"暂无线路。点击刷新；来源无法访问时会显示错误。",15,INK));
-        int found=0;
+        int found=0;String currentProbeKey="";
+        try{currentProbeKey=DirectNetworkProbe.capture(this).key;}catch(IOException ignored){}
         Set<String> favorites=getPreferences(0).getStringSet("favorites",Collections.emptySet());
         for(Node n:nodes){
             if(!n.matches(search))continue;
@@ -163,7 +168,7 @@ public final class MainActivity extends Activity implements VpnStatus.StateListe
             LinearLayout content=new LinearLayout(this);content.setOrientation(LinearLayout.VERTICAL);row.addView(content,new LinearLayout.LayoutParams(0,-2,1));
             content.addView(text(n.country+(n==selected?"  ✓":""),17,INK));
             content.addView(text(n.ip+":"+n.port+" · TCP · "+n.source,12,0xff718099));
-            content.addView(text((n.latencyMs>0?n.latencyMs+" ms · 端口可达":n.latencyMs==-1?"候选线路 · 尚未检测":"端口检测未通过，可手动尝试")+(n.advertisedBps>0?"  /  标称 "+String.format(Locale.ROOT,"%.0f",n.advertisedBps/1000000.0)+" Mbps":"  /  来源未提供带宽"),11,n.latencyMs>0?0xff207e72:0xffa95637));
+            content.addView(text(probeStatus(n,currentProbeKey)+(n.advertisedBps>0?"  /  标称 "+String.format(Locale.ROOT,"%.0f",n.advertisedBps/1000000.0)+" Mbps":"  /  来源未提供带宽"),11,0xff596d93));
             content.addView(text(health.note((connecting||connected)?attemptScope:networkScope(),n,System.currentTimeMillis()),11,0xff596d93));
             content.addView(text("公共节点 · 日志风险 · "+clock(n.checkedAt),10,0xffa46735));
             TextView star=text(favorites.contains(n.ip)?"★":"☆",24,0xffc39b43);row.addView(star);
@@ -175,6 +180,11 @@ public final class MainActivity extends Activity implements VpnStatus.StateListe
             rows.addView(text("没有匹配的国家或 IP，当前共有 "+nodes.size()+" 条候选",15,INK));
             button("清除搜索条件",rows,0xff244994,()->{search="";render();});
         }
+    }
+    private String probeStatus(Node n,String currentKey){
+        if(n.checkedAt==0)return "尚未检测当前直连网络";
+        if(currentKey.isEmpty()||!currentKey.equals(n.checkedNetwork))return "网络已变化，需重新检测";
+        return n.latencyMs>0?n.latencyMs+" ms · 直连 TCP 建连（非隧道延迟）":"当前直连 TCP 未通过";
     }
     private String readFeed(InputStream input)throws IOException{
         try(InputStream in=input;ByteArrayOutputStream out=new ByteArrayOutputStream()){
@@ -205,7 +215,7 @@ public final class MainActivity extends Activity implements VpnStatus.StateListe
     }
     private void refresh(){
         if(busy)return;if(connecting||connected){toast("请先断开本应用的线路再刷新；允许借助其他 VPN 获取列表");return;}
-        probeViaVpn=hasActiveVpn();busy=true;feedError="";render();worker.execute(()->{
+        busy=true;feedError="";render();worker.execute(()->{
             FeedSnapshot chosen=localFeed();
             if(chosen!=null){FeedSnapshot local=chosen;List<Node> preview=new ArrayList<>(local.nodes.subList(0,Math.min(40,local.nodes.size())));main.post(()->showFeed(local,preview,"本地公开节点快照（未验证连通）","正在尝试在线更新…",false));}
             String origin="在线公开节点源",error="";
@@ -218,9 +228,9 @@ public final class MainActivity extends Activity implements VpnStatus.StateListe
             }
             if(chosen==null){String reason=error+"\n没有七天内的有效缓存或内置快照。可先开启手机现有 VPN，再点刷新；无需填写 API。";main.post(()->{if(destroyed)return;busy=false;feedError=reason;render();});return;}
             List<Node> tested;
-            try{tested=Discovery.probe(chosen.nodes);}catch(Exception e){tested=new ArrayList<>(chosen.nodes.subList(0,Math.min(40,chosen.nodes.size())));error+="\n端口检测未完成，保留未验证候选。";}
+            try{DirectNetworkProbe route=DirectNetworkProbe.capture(this);tested=route.measure(this,chosen.nodes);probeLabel=route.label+" · 网络 "+route.key;}catch(Exception e){tested=Discovery.balanced(chosen.nodes,40);for(Node n:tested){n.latencyMs=-1;n.checkedAt=0;n.checkedNetwork="";}probeLabel="直连检测未完成";error+="\n"+e.getClass().getSimpleName()+"："+e.getMessage()+"。连接前必须重新检测。";}
             int reachable=0;for(Node node:tested)if(node.latencyMs>0)reachable++;
-            if(reachable==0)error+="\n已有 "+tested.size()+" 条候选，但当前网络端口探测均未通过。仍可尝试连接，不能保证可用。";
+            if(reachable==0)error+="\n当前直连网络没有检测通过的端口；不会把候选列表当作可用线路。";
             FeedSnapshot result=chosen;List<Node> resultNodes=tested;String resultOrigin=origin,resultError=error;
             main.post(()->showFeed(result,resultNodes,resultOrigin,resultError,true));
         });
@@ -243,7 +253,7 @@ public final class MainActivity extends Activity implements VpnStatus.StateListe
         getPreferences(0).edit().putString("last_diagnostics",String.join("\n",diagnostics)).apply();
     }
     private void showDiagnostics(){
-        String report="极光 0.5 · OpenVPN TCP\n"+feedNote+"\n"+
+        String report="极光 0.6 · OpenVPN TCP\n"+feedNote+"\n"+
             (diagnostics.isEmpty()?getPreferences(0).getString("last_diagnostics","尚无连接记录"):String.join("\n",diagnostics));
         new AlertDialog.Builder(this).setTitle("连接诊断（无密钥）").setMessage(report)
             .setPositiveButton("关闭",null).setNeutralButton("复制",(d,w)->{
@@ -251,16 +261,49 @@ public final class MainActivity extends Activity implements VpnStatus.StateListe
             }).show();
     }
     private void toggle(){
+        if(preflighting){preflightGeneration++;preflighting=false;busy=false;if(preflightFuture!=null)preflightFuture.cancel(true);status="已取消直连检测";render();return;}
+        if(busy&&!connected&&!connecting){toast("正在获取节点，请稍候");return;}
         if(connecting||connected||permissionPending||stopUnconfirmed){
             auto=false;switching=false;permissionPending=false;
             if(window.stage!=AttemptWindow.Stage.STOPPING)endAttempt("用户取消",false);
-        }else if(selected!=null){queue.clear();queue.add(selected);attempt=0;auto=false;attemptScope=networkScope();authorize();}else connectBest();
+        }else if(selected!=null){beginPreflight(false);}else connectBest();
     }
     private void connectBest(){
         if(connecting||connected||permissionPending||stopUnconfirmed){toast("已有连接，请先断开");return;}if(busy){toast("正在检测节点，请稍候");return;}
-        attemptScope=networkScope();queue.clear();queue.addAll(health.select(nodes,attemptScope,System.currentTimeMillis(),6));
-        if(queue.isEmpty()){toast(nodes.isEmpty()?"没有候选线路，请先刷新":"当前候选均在失败冷却期，可稍后重试、刷新或手动选择");return;}
-        attempt=0;auto=true;authorize();
+        beginPreflight(true);
+    }
+    private void beginPreflight(boolean automatic){
+        if(nodes.isEmpty()&&selected==null){toast("没有候选线路，请先刷新");return;}
+        DirectNetworkProbe route;
+        try{route=DirectNetworkProbe.capture(this);}catch(IOException error){status=error.getMessage();record(status);render();return;}
+        List<Node> candidates=automatic?new ArrayList<>(nodes):Collections.singletonList(selected);
+        int generation=++preflightGeneration;preflighting=true;busy=true;
+        status="检测当前"+route.label;record(status+" · 网络 "+route.key);render();
+        preflightFuture=worker.submit(()->{
+            try{
+                List<Node> tested=route.measure(this,candidates);
+                main.post(()->{
+                    if(destroyed||generation!=preflightGeneration)return;
+                    preflighting=false;busy=false;
+                    if(!route.current(this)){status="网络已切换，检测结果作废，请重新连接";record(status);render();return;}
+                    List<Node> reachable=new ArrayList<>();
+                    for(Node n:tested)if(n.latencyMs>0&&route.key.equals(n.checkedNetwork))reachable.add(n);
+                    probeLabel=route.label+" · 网络 "+route.key;
+                    record(probeLabel+"：TCP 通过 "+reachable.size()+"/"+tested.size());
+                    if(reachable.isEmpty()){
+                        status="当前"+route.label+"无可达端口 · 未启动隧道";
+                        record(status);feedError="已检测 "+tested.size()+" 条候选，TCP 均未通过。可切换 Wi-Fi/移动网络对照；如有其他 VPN 的阻止直连策略，先关闭后重测。";render();return;
+                    }
+                    attemptNetwork=route;attemptScope=route.scope;queue.clear();
+                    queue.addAll(automatic?health.select(reachable,attemptScope,System.currentTimeMillis(),6):reachable);
+                    if(queue.isEmpty()){status="可达候选均在失败冷却期，可稍后或手动尝试";render();return;}
+                    attempt=0;auto=automatic;authorize();
+                });
+            }catch(Exception error){main.post(()->{
+                if(destroyed||generation!=preflightGeneration)return;
+                preflighting=false;busy=false;status="直连检测失败："+error.getClass().getSimpleName()+" · "+error.getMessage();record(status);render();
+            });}
+        });
     }
     private void authorize(){
         Intent permission=android.net.VpnService.prepare(this);
@@ -278,6 +321,16 @@ public final class MainActivity extends Activity implements VpnStatus.StateListe
         cancelVerification();attemptStarted=System.currentTimeMillis();reattach=false;selected=queue.get(attempt++);connecting=true;connected=false;switching=false;bytesIn=bytesOut=0;
         failure="";lastState="启动内核";window.start(SystemClock.elapsedRealtime());
         status="正在连接";page="home";render();record("尝试 "+attempt+"/"+queue.size()+" "+selected.ip+":"+selected.port+" "+selected.country);
+        DirectNetworkProbe route=attemptNetwork;Node candidate=selected;int token=window.generation;
+        worker.execute(()->{
+            try{
+                if(route==null)throw new IOException("缺少直连检测，请重新连接");
+                route.check(this,candidate);
+                main.post(()->{if(!destroyed&&window.active(token)&&connecting&&window.stage==AttemptWindow.Stage.CONNECTING){record("连接前复检通过 · "+route.label+" · "+candidate.latencyMs+" ms");launchSelected();}});
+            }catch(Exception error){main.post(()->{if(!destroyed&&window.active(token)&&connecting)endAttempt("连接前直连 TCP 复检失败："+error.getMessage(),route!=null&&route.current(this));});}
+        });
+    }
+    private void launchSelected(){
         if(Build.VERSION.SDK_INT>=33 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)!=PackageManager.PERMISSION_GRANTED)
             requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS},20);
         try{
@@ -408,11 +461,11 @@ public final class MainActivity extends Activity implements VpnStatus.StateListe
     }
     private String clock(long t){return t==0?"未检测":new SimpleDateFormat("HH:mm:ss",Locale.getDefault()).format(new Date(t));}
     private void toast(String s){if(!destroyed)Toast.makeText(this,s,Toast.LENGTH_LONG).show();}
-    private void about(){new AlertDialog.Builder(this).setTitle("极光 · 免费线路版 0.5")
+    private void about(){new AlertDialog.Builder(this).setTitle("极光 · 免费线路版 0.6")
         .setMessage("同一 APK 内集成 OpenVPN for Android 内核，无需手填 API 或节点配置。\n\n公开源：VPN Gate（含同源备用镜像）、VPNBook\n标称带宽来自源站，不保证实际速度。延迟仅是端口连接耗时。自动优选最多尝试 6 条不同线路，每条连接上限 25 秒，停止等待上限 8 秒。停止未确认时结束自动连接，提示在系统 VPN 设置断开；自动换线仅在此页面存活时运行。\n\n公共节点可能记录连接与流量，不提供匿名保证。隧道断开时系统可能恢复直连。可在 Android VPN 设置中按需启用始终开启和阻止无 VPN 连接。\n\n测试流量发往 Cloudflare，约 1 MB。无账号、支付、广告或自建后台。节点源被阻断时，无法保证首次获取成功。\n\n内核许可证与源代码见本项目 README。")
         .setPositiveButton("知道了",null).setNeutralButton("内核诊断",(d,w)->startActivity(new Intent(this,de.blinkt.openvpn.activities.MainActivity.class))).show();}
     @Override protected void onSaveInstanceState(Bundle s){super.onSaveInstanceState(s);s.putString("page",page);}
-    @Override protected void onDestroy(){destroyed=true;auto=false;main.removeCallbacksAndMessages(null);cancelVerification();worker.shutdownNow();control.shutdownNow();verification.shutdownNow();VpnStatus.removeLogListener(this);VpnStatus.removeStateListener(this);VpnStatus.removeByteCountListener(this);if(bound)unbindService(engineConnection);super.onDestroy();}
+    @Override protected void onDestroy(){destroyed=true;auto=false;preflightGeneration++;if(preflightFuture!=null)preflightFuture.cancel(true);main.removeCallbacksAndMessages(null);cancelVerification();worker.shutdownNow();control.shutdownNow();verification.shutdownNow();VpnStatus.removeLogListener(this);VpnStatus.removeStateListener(this);VpnStatus.removeByteCountListener(this);if(bound)unbindService(engineConnection);super.onDestroy();}
     private final class PowerView extends View {
         private final Paint paint=new Paint(Paint.ANTI_ALIAS_FLAG);
         PowerView(){super(MainActivity.this);setLayerType(View.LAYER_TYPE_SOFTWARE,null);}

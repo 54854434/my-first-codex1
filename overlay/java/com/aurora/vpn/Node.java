@@ -8,6 +8,7 @@ public final class Node {
     public final long advertisedBps;
     public volatile int latencyMs = -1;
     public volatile long checkedAt;
+    public volatile String checkedNetwork="";
     public Node(String ip, String country, String code, int port, long bps, String config) {
         this(ip,country,code,port,bps,config,"VPN Gate");
     }
