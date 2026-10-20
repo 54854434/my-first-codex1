@@ -22,9 +22,11 @@ class OverlayTests(unittest.TestCase):
                 (folder / "AndroidManifest.xml").write_text('''<manifest xmlns:android="http://schemas.android.com/apk/res/android"><application android:name=".core.ICSOpenVPNApplication"><activity android:name=".activities.MainActivity"><intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter></activity><service android:name=".core.OpenVPNService"/></application></manifest>''')
             for folder in ("java", "res"):
                 (root / "overlay" / folder).mkdir(parents=True)
+            (root / "overlay/assets").mkdir()
+            (root / "overlay/assets/gate-seed.csv").write_text("dated public snapshot fixture")
             (root / "config").mkdir()
             shutil.copyfile(ROOT / "config/lint-baseline.xml", root / "config/lint-baseline.xml")
-            (up / "main/build.gradle.kts").write_text("defaultConfig {\n minSdk = 21\n}")
+            (up / "main/build.gradle.kts").write_text('defaultConfig {\n minSdk = 21\n versionCode = 219\n versionName = "0.7.64"\n}\nlint {\n}\n')
             native = up / "main/src/main/cpp/openvpn-config/config.h"
             native.parent.mkdir(parents=True)
             native.write_text("/* upstream API-21 configuration */\n")
@@ -43,6 +45,10 @@ class OverlayTests(unittest.TestCase):
             properties = (up / "gradle.properties").read_text()
             self.assertEqual(properties.count("org.gradle.jvmargs="), 1)
             self.assertIn("-Xmx4g", properties)
+            self.assertEqual((up / "main/src/main/assets/gate-seed.csv").read_text(), "dated public snapshot fixture")
+            self.assertIn('versionName = "0.2.0-alpha"', build)
+            self.assertIn('versionCode = 220', build)
+            self.assertIn('baseline = file("lint-baseline.xml")', build)
             main_app = ET.parse(up / "main/src/main/AndroidManifest.xml").getroot().find("application")
             self.assertEqual(main_app.get(a+"allowBackup"), "false")
 

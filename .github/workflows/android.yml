@@ -34,6 +34,8 @@ jobs:
       - name: Check live public source from the build network
         continue-on-error: true
         run: java -cp .checks com.aurora.vpn.GateLiveCheck
+      - name: Bundle a fresh dated public node snapshot
+        run: java -cp .checks com.aurora.vpn.GateSeedBuilder overlay/assets/gate-seed.csv
       - name: Apply Aurora UI to pinned engine
         run: python3 scripts/prepare.py
       - name: Build integrated APK

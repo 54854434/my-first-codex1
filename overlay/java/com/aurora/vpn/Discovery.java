@@ -12,7 +12,7 @@ public final class Discovery {
         IOException last=null;
         for(String url:Arrays.asList(SOURCE,"https://vpngate.net/api/iphone/")) {
             HttpURLConnection c=(HttpURLConnection)new URL(url).openConnection();
-            c.setConnectTimeout(8000);c.setReadTimeout(12000);c.setInstanceFollowRedirects(false);
+            c.setConnectTimeout(5000);c.setReadTimeout(7000);c.setInstanceFollowRedirects(false);
             c.setRequestProperty("User-Agent","AuroraFreeVPN/0.1 (Android; public VPN Gate client)");
             try {
                 if(c.getResponseCode()!=200)throw new IOException("Node source HTTP "+c.getResponseCode());
@@ -23,14 +23,19 @@ public final class Discovery {
                         if(output.size()+count>5*1024*1024)throw new IOException("Node source too large");
                         output.write(b,0,count);
                     }
-                    return output.toString(StandardCharsets.UTF_8.name());
+                    String raw=output.toString(StandardCharsets.UTF_8.name());
+                    try{FeedSnapshot.online(raw,System.currentTimeMillis());}
+                    catch(IllegalArgumentException bad){throw new IOException("Source returned no compatible node list",bad);}
+                    return raw;
                 }
             }catch(IOException e){last=e;}finally{c.disconnect();}
         }
         throw last==null?new IOException("Node source unavailable"):last;
     }
     public static List<Node> find() throws Exception {
-        List<Node> all=GateParser.parse(download());
+        return probe(GateParser.parse(download()));
+    }
+    public static List<Node> probe(List<Node> all) throws Exception {
         // Bounded checks: one TCP connection per candidate, no payload or broad network scanning.
         List<Node> candidates=new ArrayList<>(all.subList(0,Math.min(all.size(),40)));
         ExecutorService pool=Executors.newFixedThreadPool(4);

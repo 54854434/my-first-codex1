@@ -18,6 +18,8 @@ def prepare():
         raise SystemExit(f"Unexpected upstream revision: {revision}")
     for folder in ("java", "res"):
         shutil.copytree(ROOT / "overlay" / folder, UPSTREAM / "main/src/ui" / folder, dirs_exist_ok=True)
+    if (ROOT / "overlay/assets").exists():
+        shutil.copytree(ROOT / "overlay/assets", UPSTREAM / "main/src/main/assets", dirs_exist_ok=True)
 
     android = "http://schemas.android.com/apk/res/android"
     tools = "http://schemas.android.com/tools"
@@ -58,6 +60,8 @@ def prepare():
     if 'applicationId = "com.aurora.freevpn"' not in content:
         content = content.replace("defaultConfig {", 'defaultConfig {\n        applicationId = "com.aurora.freevpn"', 1)
     content = content.replace("minSdk = 21", "minSdk = 26")
+    content = re.sub(r'versionCode = \d+', 'versionCode = 220', content, count=1)
+    content = re.sub(r'versionName = "[^"]+"', 'versionName = "0.2.0-alpha"', content, count=1)
     # One installable APK covering the same four ABIs, without simultaneous split packagers.
     content = content.replace("isEnable = true", "isEnable = false")
     if 'baseline = file("lint-baseline.xml")' not in content:
