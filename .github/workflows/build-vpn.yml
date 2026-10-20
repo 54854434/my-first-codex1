@@ -62,9 +62,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          cp node-atlas/app/src/main/assets/index.html sing-box-for-android/app/src/main/assets/nodeatlas.html
+          cp app/src/main/assets/index.html sing-box-for-android/app/src/main/assets/nodeatlas.html
           mkdir -p sing-box-for-android/app/src/main/java/io/nekohasekai/sfa/nodeatlas
-          cp node-atlas/vpn-overlay/NodeAtlasActivity.java sing-box-for-android/app/src/main/java/io/nekohasekai/sfa/nodeatlas/NodeAtlasActivity.java
+          cp vpn-overlay/NodeAtlasActivity.java sing-box-for-android/app/src/main/java/io/nekohasekai/sfa/nodeatlas/NodeAtlasActivity.java
           python3 - <<'PY'
           from pathlib import Path
 
@@ -114,7 +114,7 @@ jobs:
           apk=$(find sing-box-for-android/app/build/outputs/apk -type f -name '*.apk' | head -n 1)
           test -n "$apk"
           cp "$apk" dist/NodeAtlas-VPN-debug.apk
-          cp node-atlas/app/src/main/assets/index.html dist/NodeAtlas-VPN.html
+          cp app/src/main/assets/index.html dist/NodeAtlas-VPN.html
           cat > dist/SOURCE-NOTICES.txt <<'EOF'
           NodeAtlas VPN build
 
