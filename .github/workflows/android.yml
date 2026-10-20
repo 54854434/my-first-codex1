@@ -27,7 +27,7 @@ jobs:
       - name: Install native build prerequisites
         run: |
           sudo apt-get update
-          sudo apt-get install -y swig ninja-build
+          sudo apt-get install -y swig ninja-build openvpn
           sdkmanager 'platforms;android-36' 'build-tools;36.0.0' 'ndk;29.0.14206865' 'cmake;3.22.1'
       - name: Test public feed parser and configuration boundary
         run: bash scripts/test.sh
@@ -36,6 +36,12 @@ jobs:
         run: java -cp .checks com.aurora.vpn.GateLiveCheck
       - name: Bundle a fresh dated public node snapshot
         run: java -cp .checks com.aurora.vpn.GateSeedBuilder overlay/assets/gate-seed.csv
+      - name: Test real public OpenVPN handshakes from CI (no routes)
+        run: python3 scripts/check_handshakes.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: public-handshake-report
+          path: .checks/handshakes/report.json
       - name: Apply Aurora UI to pinned engine
         run: python3 scripts/prepare.py
       - name: Build integrated APK

@@ -31,21 +31,28 @@ public final class MainActivity extends Activity implements VpnStatus.StateListe
     private static boolean probeViaVpn;
     private final Handler main=new Handler(Looper.getMainLooper());
     private final ExecutorService worker=Executors.newSingleThreadExecutor();
+    private final ExecutorService control=Executors.newSingleThreadExecutor();
+    private final AttemptWindow window=new AttemptWindow();
+    private final List<String> diagnostics=new ArrayList<>();
+    private String expectedProfile, lastState="", failure="";
+    private boolean permissionPending, stopUnconfirmed, reattach=true;
     private LinearLayout body, rows;
     private TextView statusView, statsView, resultView;
     private String page="home", status="尚未连接", search="", speedResult="连接后可检测实际下载速度";
     private long bytesIn, bytesOut;
-    private boolean busy, connecting, connected, auto, switching, bound, destroyed, timerSet;
+    private boolean busy, connecting, connected, auto, switching, bound, destroyed;
     private int attempt;
     private final List<Node> queue=new ArrayList<>();
     private IOpenVPNServiceInternal engine;
-    private final Runnable timeout=()->{
-        if(connecting && !connected) {
-            status="连接超时，正在断开"; switching=auto && attempt<queue.size();
-            if(!switching)auto=false;
-            disconnectEngine(); updateLabels();
+    private final Runnable watchdog=new Runnable(){public void run(){
+        if(destroyed)return;
+        if(window.expired(SystemClock.elapsedRealtime())){
+            if(window.stage==AttemptWindow.Stage.CONNECTING)endAttempt("25 秒内未建立隧道（"+lastState+"）",true);
+            else {auto=false;switching=false;connecting=false;connected=false;stopUnconfirmed=true;window.clear();
+                status="内核未确认停止，请到系统 VPN 设置断开";record(status);}
         }
-    };
+        updateLabels();main.postDelayed(this,500);
+    }};
     private final ServiceConnection engineConnection=new ServiceConnection(){
         public void onServiceConnected(ComponentName n,IBinder binder){engine=IOpenVPNServiceInternal.Stub.asInterface(binder);}
         public void onServiceDisconnected(ComponentName n){engine=null;}
@@ -57,7 +64,7 @@ public final class MainActivity extends Activity implements VpnStatus.StateListe
         Intent service=new Intent(this,OpenVPNService.class).setAction(OpenVPNService.START_SERVICE);
         bound=bindService(service,engineConnection,Context.BIND_AUTO_CREATE);
         VpnStatus.addStateListener(this);VpnStatus.addByteCountListener(this);
-        render();
+        render();main.post(watchdog);
         if(!getPreferences(0).getBoolean("public_node_notice",false))notice();
         else if(nodes.isEmpty())refresh();
     }
@@ -116,6 +123,7 @@ public final class MainActivity extends Activity implements VpnStatus.StateListe
         statsView=label("",14,MUTED);body.addView(statsView);updateLabels();
         button(busy?"正在获取和检测…":"刷新免费节点",body,0xff304b87,()->refresh());
         button("自动优选连接",body,CYAN,()->connectBest());
+        button("查看连接诊断",body,0xff293a62,()->showDiagnostics());
         resultView=label(speedResult,13,MUTED);body.addView(resultView);
         button("检测当前隧道下载速度（约 1 MB）",body,0xff293a62,()->speedTest());
         gap(body,18);body.addView(label("公共志愿者节点 · 可能记录流量\n免费，不保证可用性与速度",12,0xffffce85));
@@ -212,20 +220,55 @@ public final class MainActivity extends Activity implements VpnStatus.StateListe
         Network n=cm.getActiveNetwork();NetworkCapabilities caps=cm.getNetworkCapabilities(n);
         return caps!=null&&caps.hasTransport(NetworkCapabilities.TRANSPORT_VPN);
     }
-    private void toggle(){if(connecting||connected){auto=false;switching=false;main.removeCallbacks(timeout);disconnectEngine();}else if(selected!=null){queue.clear();queue.add(selected);attempt=0;auto=false;next();}else connectBest();}
+    private void record(String message){
+        diagnostics.add(clock(System.currentTimeMillis())+" "+message);
+        if(diagnostics.size()>60)diagnostics.remove(0);
+        getPreferences(0).edit().putString("last_diagnostics",String.join("\n",diagnostics)).apply();
+    }
+    private void showDiagnostics(){
+        String report="极光 0.3 · OpenVPN TCP\n"+feedNote+"\n"+
+            (diagnostics.isEmpty()?getPreferences(0).getString("last_diagnostics","尚无连接记录"):String.join("\n",diagnostics));
+        new AlertDialog.Builder(this).setTitle("连接诊断（无密钥）").setMessage(report)
+            .setPositiveButton("关闭",null).setNeutralButton("复制",(d,w)->{
+                ((ClipboardManager)getSystemService(CLIPBOARD_SERVICE)).setPrimaryClip(ClipData.newPlainText("Aurora diagnostics",report));toast("诊断已复制");
+            }).show();
+    }
+    private void toggle(){
+        if(connecting||connected||permissionPending||stopUnconfirmed){
+            auto=false;switching=false;permissionPending=false;
+            if(window.stage!=AttemptWindow.Stage.STOPPING)endAttempt("用户取消",false);
+        }else if(selected!=null){queue.clear();queue.add(selected);attempt=0;auto=false;authorize();}else connectBest();
+    }
     private void connectBest(){
-        if(connecting||connected){toast("已有连接，请先断开");return;}if(busy){toast("正在检测节点，请稍候");return;}
-        queue.clear();for(Node n:nodes)if(n.latencyMs>0 && queue.size()<3)queue.add(n);
-        if(queue.isEmpty()&&!nodes.isEmpty()){
-            queue.addAll(nodes.subList(0,Math.min(3,nodes.size())));
-            toast("端口探测未通过，尝试前三条候选；不保证连接成功");
+        if(connecting||connected||permissionPending||stopUnconfirmed){toast("已有连接，请先断开");return;}if(busy){toast("正在检测节点，请稍候");return;}
+        queue.clear();
+        // First try distinct countries, then fill with distinct endpoints; TCP reachability takes priority.
+        Set<String> countries=new HashSet<>(),endpoints=new HashSet<>();
+        for(int pass=0;pass<4;pass++)for(Node n:nodes){
+            boolean reachable=n.latencyMs>0;
+            if(queue.size()>=6||endpoints.contains(n.ip+":"+n.port))continue;
+            if(pass<2&&!reachable)continue;
+            if((pass==0||pass==2)&&countries.contains(n.code))continue;
+            queue.add(n);countries.add(n.code);endpoints.add(n.ip+":"+n.port);
         }
-        if(queue.isEmpty()){toast("没有候选线路，请先刷新；可借助现有 VPN 获取列表");return;}attempt=0;auto=true;next();
+        if(queue.isEmpty()){toast("没有候选线路，请先刷新");return;}attempt=0;auto=true;authorize();
+    }
+    private void authorize(){
+        Intent permission=android.net.VpnService.prepare(this);
+        if(permission!=null){permissionPending=true;status="等待系统 VPN 授权";render();startActivityForResult(permission,71);}
+        else next();
+    }
+    @Override protected void onActivityResult(int request,int result,Intent data){
+        super.onActivityResult(request,result,data);
+        if(request==71){boolean wanted=permissionPending;permissionPending=false;
+            if(result==RESULT_OK&&wanted)next();else{auto=false;status="已取消 VPN 授权";render();}}
     }
     private void next(){
-        if(attempt>=queue.size()){auto=false;connecting=false;status="候选线路均未连通，请刷新";render();return;}
-        selected=queue.get(attempt++);connecting=true;connected=false;switching=false;timerSet=false;bytesIn=bytesOut=0;
-        status="正在连接 · "+attempt+" / "+queue.size();page="home";render();
+        if(destroyed)return;
+        if(attempt>=queue.size()){auto=false;connecting=false;status="候选均未连通，请刷新节点或更换网络";record(status);render();return;}
+        reattach=false;selected=queue.get(attempt++);connecting=true;connected=false;switching=false;bytesIn=bytesOut=0;
+        failure="";lastState="启动内核";window.start(SystemClock.elapsedRealtime());
+        status="正在连接";page="home";render();record("尝试 "+attempt+"/"+queue.size()+" "+selected.ip+":"+selected.port+" "+selected.country);
         if(Build.VERSION.SDK_INT>=33 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)!=PackageManager.PERMISSION_GRANTED)
             requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS},20);
         try{
@@ -234,37 +277,69 @@ public final class MainActivity extends Activity implements VpnStatus.StateListe
             p.mUsername="vpn";p.mPassword="vpn";p.mUseDefaultRoute=true;p.mUseDefaultRoutev6=true;
             p.mBlockUnusedAddressFamilies=true;p.mAllowedAppsVpn.clear();p.mAllowedAppsVpnAreDisallowed=true;
             p.mOverrideDNS=true;p.mDNS1="1.1.1.1";p.mDNS2="8.8.8.8";
-            ProfileManager.setTemporaryProfile(this,p);
+            p.mConnectRetryMax="1";p.mConnectRetry="1";p.mConnectRetryMaxTime="1";
+            for(Connection c:p.mConnections)c.mConnectTimeout=8;
+            p.mUseCustomConfig=true;p.mCustomConfigOptions+="\nhand-window 15\n";
+            expectedProfile=p.getUUIDString();ProfileManager.setTemporaryProfile(this,p);
             getPreferences(0).edit().putString("active_label",p.mName).apply();
             Intent launch=new Intent(this,LaunchVPN.class).setAction(Intent.ACTION_MAIN);
-            launch.putExtra(LaunchVPN.EXTRA_KEY,p.getUUIDString());launch.putExtra(LaunchVPN.EXTRA_HIDELOG,true);
+            launch.putExtra(LaunchVPN.EXTRA_KEY,expectedProfile);launch.putExtra(LaunchVPN.EXTRA_HIDELOG,true);
             startActivity(launch);
-        }catch(Exception e){connecting=false;auto=false;status="节点配置不兼容，请换线";render();}
+        }catch(Exception e){endAttempt("配置或启动失败："+e.getClass().getSimpleName(),true);}
     }
-    private void disconnectEngine(){
-        if(engine==null){toast("内核暂未就绪，请稍后重试");return;}
-        status="正在断开…";updateLabels();
-        worker.execute(()->{try{engine.stopVPN(false);}catch(Exception e){main.post(()->toast("断开失败，请在系统 VPN 设置中断开"));}});
+    private void endAttempt(String reason,boolean retry){
+        if(window.stage==AttemptWindow.Stage.STOPPING)return;
+        failure=reason;record(reason);switching=retry&&auto&&attempt<queue.size();
+        if(!switching)auto=false;
+        connected=false;connecting=true;status="正在停止当前尝试";
+        window.stopping(SystemClock.elapsedRealtime());int token=window.generation;
+        IOpenVPNServiceInternal service=engine;
+        if(service==null){auto=false;switching=false;record("内核服务不可用");return;}
+        // Control calls never wait behind refresh or speed-test network IO.
+        control.execute(()->{
+            try{boolean hadProcess=service.stopVPN(false);main.post(()->{
+                if(!destroyed&&window.active(token)&&window.rpcFinished(hadProcess))afterStopped();
+            });}catch(Exception e){main.post(()->{if(window.active(token))record("停止内核失败："+e.getClass().getSimpleName());});}
+        });updateLabels();
+    }
+    private void afterStopped(){
+        stopUnconfirmed=false;boolean retry=switching&&auto;window.clear();connecting=false;connected=false;expectedProfile=null;
+        switching=false;
+        if(retry){status="正在换线";int token=window.generation;connecting=true;
+            main.postDelayed(()->{if(!destroyed&&auto&&window.active(token))next();},1200);
+        }else{auto=false;status=failure+" · 未连接";}
+        updateLabels();
     }
     @Override public void updateState(String state,String log,int res,ConnectionStatus level,Intent intent){main.post(()->{
         if(destroyed)return;
-        if(level==ConnectionStatus.LEVEL_CONNECTED){connected=true;connecting=false;auto=false;switching=false;status="已连接";main.removeCallbacks(timeout);}
-        else if(level==ConnectionStatus.LEVEL_NOTCONNECTED || level==ConnectionStatus.LEVEL_AUTH_FAILED){
-            boolean retry=switching || (auto&&connecting&&attempt<queue.size());
-            connected=false;connecting=false;main.removeCallbacks(timeout);timerSet=false;
-            if(retry){switching=false;status="正在切换候选线路…";main.postDelayed(()->{if(!destroyed&&auto)next();},1200);}
-            else {auto=false;status=level==ConnectionStatus.LEVEL_AUTH_FAILED?"认证失败，请换线":"尚未连接";}
-        }else if(level==ConnectionStatus.LEVEL_CONNECTING_NO_SERVER_REPLY_YET || level==ConnectionStatus.LEVEL_CONNECTING_SERVER_REPLIED || level==ConnectionStatus.LEVEL_START){
-            connecting=true;connected=false;status="正在建立隧道 · "+state;
-            if(!timerSet){timerSet=true;main.postDelayed(timeout,35000);}
-        }else if(level==ConnectionStatus.LEVEL_NONETWORK){status="网络不可用，等待恢复";connected=false;}
-        else if(level==ConnectionStatus.LEVEL_VPNPAUSED){status="连接已暂停";connected=false;}
-        else if(level==ConnectionStatus.LEVEL_WAITING_FOR_USER_INPUT){status="等待系统授权";main.removeCallbacks(timeout);timerSet=false;}
+        if(window.stage==AttemptWindow.Stage.STOPPING){
+            if(level==ConnectionStatus.LEVEL_NOTCONNECTED&&window.stopped())afterStopped();return;
+        }
+        if(expectedProfile!=null&&!expectedProfile.equals(VpnStatus.getLastConnectedVPNProfile()))return;
+        if(window.stage==AttemptWindow.Stage.IDLE){
+            // Reattaching after Activity recreation may observe an existing real connection.
+            if(reattach&&level==ConnectionStatus.LEVEL_CONNECTED){connected=true;connecting=false;status="已连接";}
+            else if(level==ConnectionStatus.LEVEL_NOTCONNECTED){connected=false;connecting=false;if(stopUnconfirmed){stopUnconfirmed=false;status="内核已停止 · 未连接";}}
+            updateLabels();return;
+        }
+        if(!state.equals(lastState)){lastState=state;record("内核状态 "+state);}
+        if(level==ConnectionStatus.LEVEL_CONNECTED){
+            if(window.connected()||window.stage==AttemptWindow.Stage.CONNECTED){connected=true;connecting=false;auto=false;status="已连接";record("隧道已建立");}
+        }else if(level==ConnectionStatus.LEVEL_NOTCONNECTED||level==ConnectionStatus.LEVEL_AUTH_FAILED){
+            endAttempt(level==ConnectionStatus.LEVEL_AUTH_FAILED?"认证失败":"内核结束连接（"+state+"）",true);
+            if(window.stopped())afterStopped();
+        }else if(level==ConnectionStatus.LEVEL_NONETWORK){endAttempt("手机网络不可用",false);}
+        else if(level==ConnectionStatus.LEVEL_VPNPAUSED){endAttempt("VPN 已暂停",false);}
+        else if(level==ConnectionStatus.LEVEL_WAITING_FOR_USER_INPUT){status="内核等待授权或输入";}
+        else {if(window.stage==AttemptWindow.Stage.CONNECTED){window.start(SystemClock.elapsedRealtime());auto=false;}connecting=true;connected=false;status=state.equals("CONNECTRETRY")?"线路未响应，有限重试中":"正在建立隧道";}
         updateLabels();
     });}
     @Override public void setConnectedVPN(String uuid){}
     @Override public void updateByteCount(long in,long out,long diffIn,long diffOut){main.post(()->{bytesIn=in;bytesOut=out;updateLabels();});}
-    private void updateLabels(){if(statusView!=null)statusView.setText(status);if(statsView!=null)statsView.setText(String.format(Locale.ROOT,"↓ %.2f MB    ↑ %.2f MB",bytesIn/1048576.0,bytesOut/1048576.0));}
+    private void updateLabels(){if(statusView!=null){String detail="";
+        if(window.stage==AttemptWindow.Stage.CONNECTING)detail="\n"+attempt+" / "+queue.size()+" · 剩余 "+window.seconds(SystemClock.elapsedRealtime())+" 秒";
+        if(window.stage==AttemptWindow.Stage.STOPPING)detail="\n停止等待 "+window.seconds(SystemClock.elapsedRealtime())+" 秒";
+        statusView.setText(status+detail);}if(statsView!=null)statsView.setText(String.format(Locale.ROOT,"↓ %.2f MB    ↑ %.2f MB",bytesIn/1048576.0,bytesOut/1048576.0));}
     private void speedTest(){
         if(!connected){toast("请先连接 VPN");return;}if(busy){toast("已有任务进行中");return;}
         busy=true;speedResult="正在检测隧道内实际下载速度…";render();
@@ -294,11 +369,11 @@ public final class MainActivity extends Activity implements VpnStatus.StateListe
     }
     private String clock(long t){return t==0?"未检测":new SimpleDateFormat("HH:mm:ss",Locale.getDefault()).format(new Date(t));}
     private void toast(String s){if(!destroyed)Toast.makeText(this,s,Toast.LENGTH_LONG).show();}
-    private void about(){new AlertDialog.Builder(this).setTitle("极光 · 免费线路版 0.2")
-        .setMessage("同一 APK 内集成 OpenVPN for Android 内核，无需手填 API 或节点配置。\n\n公开源：VPN Gate\n标称带宽来自源站，不保证实际速度。延迟仅是端口连接耗时。自动优选最多尝试 3 条线路，每条约 35 秒；自动换线仅在此页面存活时运行。\n\n公共节点可能记录连接与流量，不提供匿名保证。隧道断开时系统可能恢复直连。可在 Android VPN 设置中按需启用始终开启和阻止无 VPN 连接。\n\n测试流量发往 Cloudflare，约 1 MB。无账号、支付、广告或自建后台。节点源被阻断时，无法保证首次获取成功。\n\n内核许可证与源代码见本项目 README。")
+    private void about(){new AlertDialog.Builder(this).setTitle("极光 · 免费线路版 0.3")
+        .setMessage("同一 APK 内集成 OpenVPN for Android 内核，无需手填 API 或节点配置。\n\n公开源：VPN Gate\n标称带宽来自源站，不保证实际速度。延迟仅是端口连接耗时。自动优选最多尝试 6 条不同线路，每条连接上限 25 秒，停止等待上限 8 秒。停止未确认时结束自动连接，提示在系统 VPN 设置断开；自动换线仅在此页面存活时运行。\n\n公共节点可能记录连接与流量，不提供匿名保证。隧道断开时系统可能恢复直连。可在 Android VPN 设置中按需启用始终开启和阻止无 VPN 连接。\n\n测试流量发往 Cloudflare，约 1 MB。无账号、支付、广告或自建后台。节点源被阻断时，无法保证首次获取成功。\n\n内核许可证与源代码见本项目 README。")
         .setPositiveButton("知道了",null).setNeutralButton("内核诊断",(d,w)->startActivity(new Intent(this,de.blinkt.openvpn.activities.MainActivity.class))).show();}
     @Override protected void onSaveInstanceState(Bundle s){super.onSaveInstanceState(s);s.putString("page",page);}
-    @Override protected void onDestroy(){destroyed=true;auto=false;main.removeCallbacksAndMessages(null);worker.shutdownNow();VpnStatus.removeStateListener(this);VpnStatus.removeByteCountListener(this);if(bound)unbindService(engineConnection);super.onDestroy();}
+    @Override protected void onDestroy(){destroyed=true;auto=false;main.removeCallbacksAndMessages(null);worker.shutdownNow();control.shutdownNow();VpnStatus.removeStateListener(this);VpnStatus.removeByteCountListener(this);if(bound)unbindService(engineConnection);super.onDestroy();}
     private final class PowerView extends View {
         private final Paint paint=new Paint(Paint.ANTI_ALIAS_FLAG);
         PowerView(){super(MainActivity.this);setLayerType(View.LAYER_TYPE_SOFTWARE,null);}

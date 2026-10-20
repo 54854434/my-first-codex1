@@ -60,8 +60,8 @@ def prepare():
     if 'applicationId = "com.aurora.freevpn"' not in content:
         content = content.replace("defaultConfig {", 'defaultConfig {\n        applicationId = "com.aurora.freevpn"', 1)
     content = content.replace("minSdk = 21", "minSdk = 26")
-    content = re.sub(r'versionCode = \d+', 'versionCode = 220', content, count=1)
-    content = re.sub(r'versionName = "[^"]+"', 'versionName = "0.2.0-alpha"', content, count=1)
+    content = re.sub(r'versionCode = \d+', 'versionCode = 221', content, count=1)
+    content = re.sub(r'versionName = "[^"]+"', 'versionName = "0.3.0-alpha"', content, count=1)
     # One installable APK covering the same four ABIs, without simultaneous split packagers.
     content = content.replace("isEnable = true", "isEnable = false")
     if 'baseline = file("lint-baseline.xml")' not in content:

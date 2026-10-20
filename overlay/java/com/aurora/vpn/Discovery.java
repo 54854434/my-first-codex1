@@ -13,7 +13,7 @@ public final class Discovery {
         for(String url:Arrays.asList(SOURCE,"https://vpngate.net/api/iphone/")) {
             HttpURLConnection c=(HttpURLConnection)new URL(url).openConnection();
             c.setConnectTimeout(5000);c.setReadTimeout(7000);c.setInstanceFollowRedirects(false);
-            c.setRequestProperty("User-Agent","AuroraFreeVPN/0.1 (Android; public VPN Gate client)");
+            c.setRequestProperty("User-Agent","AuroraFreeVPN/0.3 (Android; public VPN Gate client)");
             try {
                 if(c.getResponseCode()!=200)throw new IOException("Node source HTTP "+c.getResponseCode());
                 try(InputStream input=c.getInputStream();ByteArrayOutputStream output=new ByteArrayOutputStream()) {
