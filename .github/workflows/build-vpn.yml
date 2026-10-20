@@ -144,9 +144,20 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p dist
-          apk=$(find sing-box-for-android/app/build/outputs/apk -type f -name '*.apk' | head -n 1)
-          test -n "$apk"
+          mapfile -t apks < <(find sing-box-for-android/app/build/outputs/apk -type f -name '*.apk' | sort)
+          test "${#apks[@]}" -gt 0
+          printf 'Generated APKs:\n%s\n' "${apks[*]}"
+          apk=$(printf '%s\n' "${apks[@]}" | grep -E '/[^/]*universal[^/]*\.apk$' | head -n 1 || true)
+          if [ -z "$apk" ]; then
+            apk=$(printf '%s\n' "${apks[@]}" | grep -E '/[^/]*arm64-v8a[^/]*\.apk$' | head -n 1 || true)
+          fi
+          if [ -z "$apk" ]; then
+            apk="${apks[0]}"
+          fi
           cp "$apk" dist/NodeAtlas-VPN-debug.apk
+          for split_apk in "${apks[@]}"; do
+            cp "$split_apk" "dist/$(basename "$split_apk")"
+          done
           cp app/src/main/assets/index.html dist/NodeAtlas-VPN.html
           cat > dist/SOURCE-NOTICES.txt <<'EOF'
           NodeAtlas VPN build
