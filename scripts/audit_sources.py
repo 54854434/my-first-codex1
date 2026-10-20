@@ -43,12 +43,12 @@ def inspect(item):
         else:
             parser=Links();parser.feed(body)
             report['downloads']=[urllib.parse.urljoin(final,x) for x in parser.links if any(k in x.lower() for k in ('.ovpn','.zip','download','api/'))][:30]
-            report['scripts']=[urllib.parse.urljoin(final,x) for x in parser.scripts if urllib.parse.urlparse(urllib.parse.urljoin(final,x)).netloc==urllib.parse.urlparse(final).netloc][:12]
+            report['scripts']=[urllib.parse.urljoin(final,x) for x in parser.scripts if urllib.parse.urlparse(urllib.parse.urljoin(final,x)).netloc==urllib.parse.urlparse(final).netloc][:24]
             report['entry_lines']=[x.strip()[:1500] for x in body.splitlines() if re.search(r'(ovpn|download|password|fetch\(|data-server)',x,re.I)][:50]
             for index,script in enumerate(report['scripts']):
                 try:
                     _,js=get(script);(OUT/f'{name}-script-{index}.txt').write_text(js)
-                    report.setdefault('script_hints',[]).extend(re.findall(r'.{0,100}(?:download|\.ovpn|fetch\(|/api/).{0,180}',js)[:30])
+                    report.setdefault('script_hints',[]).extend(re.findall(r'.{0,100}(?:download|\.ovpn|fetch\(|/api/).{0,180}',js)[:60])
                 except Exception as error:report.setdefault('script_errors',[]).append(str(error))
     except Exception as error:report['error']=str(error)
     return report
