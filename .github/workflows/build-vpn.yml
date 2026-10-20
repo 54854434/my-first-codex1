@@ -83,11 +83,10 @@ jobs:
 
           manifest = Path("sing-box-for-android/app/src/main/AndroidManifest.xml")
           text = manifest.read_text()
-          anchor = '''        <activity
-            android:name=".compose.MainActivity"'''
-          start = text.find(anchor)
-          if start < 0:
+          anchor_match = re.search(r'(?m)^[ \t]*<activity\s+android:name="\.compose\.MainActivity"', text)
+          if not anchor_match:
               raise SystemExit("SFA MainActivity anchor was not found")
+          start = anchor_match.start()
           end = text.find("</activity>", start)
           if end < 0:
               raise SystemExit("SFA MainActivity closing tag was not found")
@@ -107,7 +106,7 @@ jobs:
             </intent-filter>
           </activity>
           '''
-          text = text.replace(anchor, node_atlas + anchor, 1)
+          text = text[:start] + node_atlas + text[start:]
           manifest.write_text(text)
 
           strings = Path("sing-box-for-android/app/src/main/res/values/strings.xml")
