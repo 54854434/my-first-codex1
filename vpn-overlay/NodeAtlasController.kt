@@ -1,10 +1,8 @@
 package io.nekohasekai.sfa.nodeatlas
 
 import android.content.Context
-import androidx.core.content.ContextCompat
 import io.nekohasekai.libbox.Libbox
 import io.nekohasekai.sfa.bg.BoxService
-import io.nekohasekai.sfa.bg.VPNService
 import io.nekohasekai.sfa.constant.ServiceMode
 import io.nekohasekai.sfa.database.Profile
 import io.nekohasekai.sfa.database.ProfileManager
