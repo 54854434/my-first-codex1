@@ -133,6 +133,27 @@ jobs:
           if old not in string_text:
               raise SystemExit("SFA app_name was not found")
           strings.write_text(string_text.replace(old, '<string name="app_name" translatable="false">NodeAtlas</string>', 1))
+
+          # Deliver a compact modern-device APK. The upstream project normally
+          # emits a universal APK plus four ABI splits; the release artifact is
+          # intentionally arm64-v8a only to avoid shipping unused native cores.
+          build_file = Path("sing-box-for-android/app/build.gradle.kts")
+          build_text = build_file.read_text()
+          build_text, universal_changed = re.subn(
+              r'(?m)^(\s*isUniversalApk\s*=\s*)true\s*$',
+              r'\1false',
+              build_text,
+              count=1,
+          )
+          build_text, abi_changed = re.subn(
+              r'include\(\s*"armeabi-v7a"\s*,\s*"arm64-v8a"\s*,\s*"x86"\s*,\s*"x86_64"\s*\)',
+              'include("arm64-v8a")',
+              build_text,
+              count=1,
+          )
+          if universal_changed != 1 or abi_changed != 1:
+              raise SystemExit("Could not apply arm64-only APK packaging overlay")
+          build_file.write_text(build_text)
           PY
 
       - name: Build NodeAtlas VPN APK
@@ -147,9 +168,9 @@ jobs:
           mapfile -t apks < <(find sing-box-for-android/app/build/outputs/apk -type f -name '*.apk' | sort)
           test "${#apks[@]}" -gt 0
           printf 'Generated APKs:\n%s\n' "${apks[*]}"
-          apk=$(printf '%s\n' "${apks[@]}" | grep -E '/[^/]*universal[^/]*\.apk$' | head -n 1 || true)
+          apk=$(printf '%s\n' "${apks[@]}" | grep -E '/[^/]*arm64-v8a[^/]*\.apk$' | head -n 1 || true)
           if [ -z "$apk" ]; then
-            apk=$(printf '%s\n' "${apks[@]}" | grep -E '/[^/]*arm64-v8a[^/]*\.apk$' | head -n 1 || true)
+            apk=$(printf '%s\n' "${apks[@]}" | grep -E '/[^/]*universal[^/]*\.apk$' | head -n 1 || true)
           fi
           if [ -z "$apk" ]; then
             apk="${apks[0]}"
