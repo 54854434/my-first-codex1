@@ -31,6 +31,9 @@ jobs:
           sdkmanager 'platforms;android-36' 'build-tools;36.0.0' 'ndk;29.0.14206865' 'cmake;3.22.1'
       - name: Test public feed parser and configuration boundary
         run: bash scripts/test.sh
+      - name: Check live public source from the build network
+        continue-on-error: true
+        run: java -cp .checks com.aurora.vpn.GateLiveCheck
       - name: Apply Aurora UI to pinned engine
         run: python3 scripts/prepare.py
       - name: Build integrated APK and lint

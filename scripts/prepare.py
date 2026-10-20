@@ -31,6 +31,8 @@ def prepare():
             app.set(attr("label"), "极光免费 VPN")
             app.set(attr("allowBackup"), "false")
             app.set(attr("usesCleartextTraffic"), "false")
+            app.set(attr("icon"), "@drawable/aurora_icon")
+            app.set(attr("roundIcon"), "@drawable/aurora_icon")
         else:
             for activity in app.findall("activity"):
                 for intent in list(activity.findall("intent-filter")):

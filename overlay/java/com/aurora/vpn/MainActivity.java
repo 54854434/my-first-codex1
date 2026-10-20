@@ -50,7 +50,6 @@ public final class MainActivity extends Activity implements VpnStatus.StateListe
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
         getWindow().setStatusBarColor(0xff213f91);getWindow().setNavigationBarColor(0xff101a3b);
-        getWindow().addFlags(WindowManager.LayoutParams.FLAG_SECURE);
         if(state!=null)page=state.getString("page","home");
         Intent service=new Intent(this,OpenVPNService.class).setAction(OpenVPNService.START_SERVICE);
         bound=bindService(service,engineConnection,Context.BIND_AUTO_CREATE);
@@ -79,6 +78,11 @@ public final class MainActivity extends Activity implements VpnStatus.StateListe
     private void render(){
         boolean list=page.equals("nodes");
         LinearLayout root=new LinearLayout(this);root.setOrientation(LinearLayout.VERTICAL);root.setPadding(dp(22),dp(8),dp(22),dp(12));
+        root.setOnApplyWindowInsetsListener((v,insets)->{
+            root.setPadding(dp(22)+insets.getSystemWindowInsetLeft(),dp(8)+insets.getSystemWindowInsetTop(),
+                dp(22)+insets.getSystemWindowInsetRight(),dp(12)+insets.getSystemWindowInsetBottom());
+            return insets;
+        });
         root.setBackground(list?background(0xfff5f7fc,0):new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,new int[]{0xff23449a,0xff101731}));
         setContentView(root);
         LinearLayout nav=new LinearLayout(this);
@@ -103,7 +107,7 @@ public final class MainActivity extends Activity implements VpnStatus.StateListe
         power.setContentDescription("连接或断开 VPN");power.setOnClickListener(v->toggle());gap(body,8);
         statusView=label(status,21,WHITE);body.addView(statusView);
         body.addView(label("OpenVPN  /  全局隧道",13,MUTED));
-        TextView route=label(selected==null?"🌐  自动选择可达线路  ›":selected.flag()+"  "+selected.country+"  ›",18,WHITE);
+        TextView route=label(selected==null?((connected||connecting)?getPreferences(0).getString("active_label","当前 VPN 线路"):"🌐  自动选择可达线路  ›"):selected.flag()+"  "+selected.country+"  ›",18,WHITE);
         route.setPadding(dp(16),dp(20),dp(16),dp(20));route.setBackground(background(0xff2c3c68,28));body.addView(route);
         route.setOnClickListener(v->{page="nodes";render();});
         statsView=label("",14,MUTED);body.addView(statsView);updateLabels();
@@ -146,7 +150,7 @@ public final class MainActivity extends Activity implements VpnStatus.StateListe
         if(found==0&&!nodes.isEmpty())rows.addView(text("没有匹配的国家或 IP",15,INK));
     }
     private void refresh(){
-        if(busy)return;if(connecting||connected){toast("请先断开，再检测本地网络的节点延迟");return;}
+        if(busy)return;if(connecting||connected||hasActiveVpn()){toast("请先断开，再检测本地网络的节点延迟");return;}
         busy=true;render();worker.execute(()->{
             try{List<Node> discovered=Discovery.find();main.post(()->{
                 if(destroyed)return;nodes.clear();nodes.addAll(discovered);refreshedAt=System.currentTimeMillis();
@@ -154,6 +158,11 @@ public final class MainActivity extends Activity implements VpnStatus.StateListe
                 busy=false;render();if(nodes.isEmpty())toast("源站没有兼容的 TCP 节点，稍后重试");
             });}catch(Exception e){main.post(()->{if(destroyed)return;busy=false;render();toast("获取失败：来源可能无法访问。已有列表不会被清空，请稍后重试。");});}
         });
+    }
+    private boolean hasActiveVpn(){
+        ConnectivityManager cm=(ConnectivityManager)getSystemService(CONNECTIVITY_SERVICE);
+        Network n=cm.getActiveNetwork();NetworkCapabilities caps=cm.getNetworkCapabilities(n);
+        return caps!=null&&caps.hasTransport(NetworkCapabilities.TRANSPORT_VPN);
     }
     private void toggle(){if(connecting||connected){auto=false;switching=false;main.removeCallbacks(timeout);disconnectEngine();}else if(selected!=null){queue.clear();queue.add(selected);attempt=0;auto=false;next();}else connectBest();}
     private void connectBest(){
