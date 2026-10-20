@@ -144,6 +144,21 @@ jobs:
           # intentionally arm64-v8a only to avoid shipping unused native cores.
           build_file = Path("sing-box-for-android/app/build.gradle.kts")
           build_text = build_file.read_text()
+          # The NodeAtlas launcher replaces the upstream Compose dashboard with a
+          # WebView surface. Keep the VPN service and data layer, but let R8 remove
+          # the unreachable upstream screens and their resources from the debug APK.
+          build_text, debug_changed = re.subn(
+              r'(?m)^    debug\s*\{\s*',
+              '''    debug {
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            ''',
+              build_text,
+              count=1,
+          )
+          if debug_changed != 1:
+              raise SystemExit("Could not enable R8 shrinking for the NodeAtlas debug APK")
           build_text, universal_changed = re.subn(
               r'(?m)^(\s*isUniversalApk\s*=\s*)true\s*$',
               r'\1false',
