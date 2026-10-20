@@ -6,6 +6,10 @@ on:
       - codex/node-atlas-vpn
   workflow_dispatch:
 
+concurrency:
+  group: nodeatlas-vpn-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: write
 
