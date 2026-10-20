@@ -87,8 +87,8 @@ jobs:
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-        </activity>
-'''
+          </activity>
+          '''
           if anchor not in text:
               raise SystemExit("SFA MainActivity anchor was not found")
           text = text.replace(anchor, node_atlas + anchor, 1)
