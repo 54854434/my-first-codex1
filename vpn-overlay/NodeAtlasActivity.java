@@ -5,6 +5,7 @@ import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.Intent;
+import android.net.VpnService;
 import android.net.Uri;
 import android.os.Bundle;
 import android.webkit.JavascriptInterface;
@@ -14,13 +15,9 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.Toast;
 
-import androidx.core.content.FileProvider;
-
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
@@ -33,11 +30,17 @@ import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import io.nekohasekai.sfa.compose.MainActivity;
+import io.nekohasekai.sfa.constant.Alert;
+import io.nekohasekai.sfa.constant.Status;
 
 public final class NodeAtlasActivity extends Activity {
+    private static final int VPN_PERMISSION_REQUEST = 2407;
     private WebView webView;
     private ExecutorService executor;
+    private AndroidBridge bridge;
+    private io.nekohasekai.sfa.bg.ServiceConnection serviceConnection;
+    private String pendingVpnTitle;
+    private String pendingVpnConfig;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -55,13 +58,95 @@ public final class NodeAtlasActivity extends Activity {
         settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
         webView.setWebViewClient(new WebViewClient());
         webView.setWebChromeClient(new WebChromeClient());
-        webView.addJavascriptInterface(new AndroidBridge(this, webView, executor), "Android");
+        bridge = new AndroidBridge(this, webView, executor);
+        webView.addJavascriptInterface(bridge, "Android");
         webView.loadUrl("file:///android_asset/nodeatlas.html");
         setContentView(webView);
     }
 
+    private void beginVpn(String title, String json) {
+        if (json == null || json.trim().isEmpty()) {
+            bridge.dispatchVpnStatus("error", "节点配置为空");
+            return;
+        }
+        try {
+            Intent prepare = VpnService.prepare(this);
+            if (prepare != null) {
+                pendingVpnTitle = title;
+                pendingVpnConfig = json;
+                bridge.dispatchVpnStatus("permission", "请在系统弹窗中允许 NodeAtlas 建立 VPN 连接");
+                startActivityForResult(prepare, VPN_PERMISSION_REQUEST);
+                return;
+            }
+            startVpnNow(title, json);
+        } catch (Exception exception) {
+            bridge.dispatchVpnStatus("error", messageOf(exception));
+        }
+    }
+
+    private void startVpnNow(String title, String json) {
+        bridge.dispatchVpnStatus("starting", "正在启动 VPN");
+        NodeAtlasController.start(this, title, json, new NodeAtlasController.Callback() {
+            @Override
+            public void onResult(String status, String message) {
+                bridge.dispatchVpnStatus(status, message == null ? "" : message);
+                if ("starting".equals(status)) observeService();
+            }
+        });
+    }
+
+    private void observeService() {
+        if (serviceConnection != null) return;
+        serviceConnection = new io.nekohasekai.sfa.bg.ServiceConnection(this, new io.nekohasekai.sfa.bg.ServiceConnection.Callback() {
+            @Override
+            public void onServiceStatusChanged(Status status) {
+                String value;
+                if (status == Status.Started) value = "started";
+                else if (status == Status.Starting) value = "starting";
+                else if (status == Status.Stopping) value = "stopping";
+                else value = "stopped";
+                if (bridge != null) bridge.dispatchVpnStatus(value, "");
+            }
+
+            @Override
+            public void onServiceAlert(Alert type, String message) {
+                if (bridge != null) bridge.dispatchVpnStatus("error", message == null ? type.name() : message);
+            }
+        }, true);
+        serviceConnection.connect();
+    }
+
+    private void stopVpn() {
+        bridge.dispatchVpnStatus("stopping", "正在断开");
+        NodeAtlasController.stop(this);
+        bridge.dispatchVpnStatus("stopped", "已断开");
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode != VPN_PERMISSION_REQUEST) return;
+        String title = pendingVpnTitle;
+        String config = pendingVpnConfig;
+        pendingVpnTitle = null;
+        pendingVpnConfig = null;
+        if (resultCode == RESULT_OK && config != null) {
+            startVpnNow(title, config);
+        } else {
+            bridge.dispatchVpnStatus("stopped", "未获得系统 VPN 授权");
+        }
+    }
+
+    private static String messageOf(Exception exception) {
+        return exception.getMessage() == null ? exception.getClass().getSimpleName() : exception.getMessage();
+    }
+
     @Override
     protected void onDestroy() {
+        if (serviceConnection != null) {
+            serviceConnection.disconnect();
+            serviceConnection = null;
+        }
         if (webView != null) {
             webView.removeJavascriptInterface("Android");
             webView.destroy();
@@ -86,6 +171,16 @@ public final class NodeAtlasActivity extends Activity {
         @JavascriptInterface
         public String getPlatform() {
             return "android-vpn";
+        }
+
+        @JavascriptInterface
+        public void startVpn(String title, String json) {
+            ((NodeAtlasActivity) context).beginVpn(title, json);
+        }
+
+        @JavascriptInterface
+        public void stopVpn() {
+            ((NodeAtlasActivity) context).stopVpn();
         }
 
         @JavascriptInterface
@@ -174,32 +269,6 @@ public final class NodeAtlasActivity extends Activity {
         }
 
         @JavascriptInterface
-        public void importLocalConfig(String title, String json) {
-            executor.execute(() -> {
-                try {
-                    File directory = new File(context.getCacheDir(), "nodeatlas");
-                    if (!directory.exists() && !directory.mkdirs()) {
-                        throw new IllegalStateException("无法创建临时目录");
-                    }
-                    String safeTitle = (title == null ? "node" : title).replaceAll("[^A-Za-z0-9._-]", "_");
-                    if (safeTitle.isEmpty()) safeTitle = "node";
-                    File file = new File(directory, safeTitle + "-" + System.currentTimeMillis() + ".json");
-                    try (FileOutputStream output = new FileOutputStream(file)) {
-                        output.write(json.getBytes(StandardCharsets.UTF_8));
-                    }
-                    Uri uri = FileProvider.getUriForFile(context, context.getPackageName() + ".cache", file);
-                    Intent intent = new Intent(context, MainActivity.class);
-                    intent.setAction(Intent.ACTION_VIEW);
-                    intent.setDataAndType(uri, "application/octet-stream");
-                    intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
-                    webView.post(() -> context.startActivity(intent));
-                } catch (Exception exception) {
-                    webView.post(() -> Toast.makeText(context, "导入失败：" + (exception.getMessage() == null ? "未知错误" : exception.getMessage()), Toast.LENGTH_LONG).show());
-                }
-            });
-        }
-
-        @JavascriptInterface
         public void shareText(String title, String text) {
             Intent intent = new Intent(Intent.ACTION_SEND);
             intent.setType("text/plain");
@@ -218,6 +287,11 @@ public final class NodeAtlasActivity extends Activity {
 
         private void dispatch(String function, String requestId, boolean ok, String value, String error) {
             String script = "window." + function + "(" + quote(requestId) + "," + ok + "," + quote(value) + "," + quote(error) + ");";
+            webView.post(() -> webView.evaluateJavascript(script, null));
+        }
+
+        void dispatchVpnStatus(String status, String message) {
+            String script = "window.__nativeVpnResult(" + quote(status) + "," + quote(message) + ");";
             webView.post(() -> webView.evaluateJavascript(script, null));
         }
 
