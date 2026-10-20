@@ -51,8 +51,13 @@ jobs:
 
       - name: Ensure the exact sing-box NDK is selected
         run: |
-          yes | sdkmanager --licenses >/dev/null 2>&1 || true
-          sdkmanager "ndk;28.0.13004108"
+          sdkmanager_path="${ANDROID_HOME:-/usr/local/lib/android/sdk}/cmdline-tools/latest/bin/sdkmanager"
+          if [ ! -x "$sdkmanager_path" ]; then
+            sdkmanager_path="$(find /usr/local/lib/android/sdk/cmdline-tools -type f -name sdkmanager -print -quit)"
+          fi
+          test -x "$sdkmanager_path"
+          yes | "$sdkmanager_path" --licenses >/dev/null 2>&1 || true
+          "$sdkmanager_path" "ndk;28.0.13004108"
           echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/28.0.13004108" >> "$GITHUB_ENV"
 
       - name: Install gomobile toolchain
