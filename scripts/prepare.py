@@ -60,7 +60,12 @@ def prepare():
     content = content.replace("minSdk = 21", "minSdk = 26")
     # One installable APK covering the same four ABIs, without simultaneous split packagers.
     content = content.replace("isEnable = true", "isEnable = false")
+    if 'baseline = file("lint-baseline.xml")' not in content:
+        content = content.replace("lint {", 'lint {\n        baseline = file("lint-baseline.xml")', 1)
     gradle.write_text(content)
+    # This reviewed baseline contains only 36 pre-existing ImpliedQuantity
+    # findings in unmodified upstream plural resources. New issues still fail lint.
+    shutil.copyfile(ROOT / "config/lint-baseline.xml", UPSTREAM / "main/lint-baseline.xml")
     properties = UPSTREAM / "gradle.properties"
     props = properties.read_text() if properties.exists() else ""
     for key, value in {"org.gradle.jvmargs": "-Xmx4g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8", "org.gradle.workers.max": "2"}.items():

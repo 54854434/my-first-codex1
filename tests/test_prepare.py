@@ -1,6 +1,7 @@
 import importlib.util
 from pathlib import Path
 import tempfile
+import shutil
 import unittest
 import xml.etree.ElementTree as ET
 from unittest.mock import patch
@@ -21,6 +22,8 @@ class OverlayTests(unittest.TestCase):
                 (folder / "AndroidManifest.xml").write_text('''<manifest xmlns:android="http://schemas.android.com/apk/res/android"><application android:name=".core.ICSOpenVPNApplication"><activity android:name=".activities.MainActivity"><intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter></activity><service android:name=".core.OpenVPNService"/></application></manifest>''')
             for folder in ("java", "res"):
                 (root / "overlay" / folder).mkdir(parents=True)
+            (root / "config").mkdir()
+            shutil.copyfile(ROOT / "config/lint-baseline.xml", root / "config/lint-baseline.xml")
             (up / "main/build.gradle.kts").write_text("defaultConfig {\n minSdk = 21\n}")
             native = up / "main/src/main/cpp/openvpn-config/config.h"
             native.parent.mkdir(parents=True)
@@ -42,6 +45,15 @@ class OverlayTests(unittest.TestCase):
             self.assertIn("-Xmx4g", properties)
             main_app = ET.parse(up / "main/src/main/AndroidManifest.xml").getroot().find("application")
             self.assertEqual(main_app.get(a+"allowBackup"), "false")
+
+    def test_baseline_contains_only_reviewed_upstream_plural_findings(self):
+        issues = ET.parse(ROOT / "config/lint-baseline.xml").getroot().findall("issue")
+        self.assertEqual(len(issues), 36)
+        for issue in issues:
+            self.assertEqual(issue.get("id"), "ImpliedQuantity")
+            for location in issue.findall("location"):
+                self.assertTrue(location.get("file").startswith("src/ui/res/values-"))
+                self.assertTrue(location.get("file").endswith("/plurals.xml"))
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,0 +1,111 @@
+<?xml version='1.0' encoding='utf-8'?>
+<issues format="6" by="lint 9.0.0" type="baseline" client="gradle" dependencies="false" variant="all">
+    <issue id="ImpliedQuantity" message="The quantity `'one'` matches more than one specific number in this locale (0, 1), but the message did not include a formatting argument (such as `%d`). This is usually an internationalization error. See full issue explanation for more." errorLine1="        &lt;item quantity=&quot;one&quot;&gt;یک ماه مونده&lt;/item&gt;" errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/ui/res/values-fa/plurals.xml" line="4" column="9" />
+    </issue>
+    <issue id="ImpliedQuantity" message="The quantity `'one'` matches more than one specific number in this locale (0, 1), but the message did not include a formatting argument (such as `%d`). This is usually an internationalization error. See full issue explanation for more." errorLine1="        &lt;item quantity=&quot;one&quot;&gt;Un mois restant&lt;/item&gt;" errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/ui/res/values-fr/plurals.xml" line="4" column="9" />
+    </issue>
+    <issue id="ImpliedQuantity" message="The quantity `'one'` matches more than one specific number in this locale (0, 1), but the message did not include a formatting argument (such as `%d`). This is usually an internationalization error. See full issue explanation for more." errorLine1="        &lt;item quantity=&quot;one&quot;&gt;Falta um mês&lt;/item&gt;" errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/ui/res/values-pt-rBR/plurals.xml" line="4" column="9" />
+    </issue>
+    <issue id="ImpliedQuantity" message="The quantity `'one'` matches more than one specific number in this locale (0, 1), but the message did not include a formatting argument (such as `%d`). This is usually an internationalization error. See full issue explanation for more." errorLine1="        &lt;item quantity=&quot;one&quot;&gt;Falta 1 mês&lt;/item&gt;" errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/ui/res/values-pt/plurals.xml" line="4" column="9" />
+    </issue>
+    <issue id="ImpliedQuantity" message="The quantity `'one'` matches more than one specific number in this locale (0, 1), but the message did not include a formatting argument (such as `%d`). This is usually an internationalization error. See full issue explanation for more." errorLine1="        &lt;item quantity=&quot;one&quot;&gt;මාසයක් ඉතිරියි&lt;/item&gt;" errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/ui/res/values-si/plurals.xml" line="4" column="9" />
+    </issue>
+    <issue id="ImpliedQuantity" message="The quantity `'one'` matches more than one specific number in this locale (1, 101, 201, 301, 401, 501, 601, 701, 1001, …), but the message did not include a formatting argument (such as `%d`). This is usually an internationalization error. See full issue explanation for more." errorLine1="        &lt;item quantity=&quot;one&quot;&gt;Preostal je še en mesec&lt;/item&gt;" errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/ui/res/values-sl/plurals.xml" line="4" column="9" />
+    </issue>
+    <issue id="ImpliedQuantity" message="The quantity `'one'` matches more than one specific number in this locale (1, 21, 31, 41, 51, 61, 71, 81, 101, 1001, …), but the message did not include a formatting argument (such as `%d`). This is usually an internationalization error. See full issue explanation for more." errorLine1="        &lt;item quantity=&quot;one&quot;&gt;Застаўся адзін месяц&lt;/item&gt;" errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/ui/res/values-be/plurals.xml" line="4" column="9" />
+    </issue>
+    <issue id="ImpliedQuantity" message="The quantity `'one'` matches more than one specific number in this locale (1, 21, 31, 41, 51, 61, 71, 81, 101, 1001, …), but the message did not include a formatting argument (such as `%d`). This is usually an internationalization error. See full issue explanation for more." errorLine1="        &lt;item quantity=&quot;one&quot;&gt;Преостао је један минут&lt;/item&gt;" errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/ui/res/values-sr-rSP/plurals.xml" line="4" column="9" />
+    </issue>
+    <issue id="ImpliedQuantity" message="The quantity `'one'` matches more than one specific number in this locale (1, 21, 31, 41, 51, 61, 71, 81, 101, 1001, …), but the message did not include a formatting argument (such as `%d`). This is usually an internationalization error. See full issue explanation for more." errorLine1="        &lt;item quantity=&quot;one&quot;&gt;Залишився один місяць&lt;/item&gt;" errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/ui/res/values-uk/plurals.xml" line="4" column="9" />
+    </issue>
+    <issue id="ImpliedQuantity" message="The quantity `'one'` matches more than one specific number in this locale (0, 1), but the message did not include a formatting argument (such as `%d`). This is usually an internationalization error. See full issue explanation for more." errorLine1="        &lt;item quantity=&quot;one&quot;&gt;یک روز مانده&lt;/item&gt;" errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/ui/res/values-fa/plurals.xml" line="8" column="9" />
+    </issue>
+    <issue id="ImpliedQuantity" message="The quantity `'one'` matches more than one specific number in this locale (0, 1), but the message did not include a formatting argument (such as `%d`). This is usually an internationalization error. See full issue explanation for more." errorLine1="        &lt;item quantity=&quot;one&quot;&gt;Un jour restant&lt;/item&gt;" errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/ui/res/values-fr/plurals.xml" line="8" column="9" />
+    </issue>
+    <issue id="ImpliedQuantity" message="The quantity `'one'` matches more than one specific number in this locale (0, 1), but the message did not include a formatting argument (such as `%d`). This is usually an internationalization error. See full issue explanation for more." errorLine1="        &lt;item quantity=&quot;one&quot;&gt;Falta um dia&lt;/item&gt;" errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/ui/res/values-pt-rBR/plurals.xml" line="8" column="9" />
+    </issue>
+    <issue id="ImpliedQuantity" message="The quantity `'one'` matches more than one specific number in this locale (0, 1), but the message did not include a formatting argument (such as `%d`). This is usually an internationalization error. See full issue explanation for more." errorLine1="        &lt;item quantity=&quot;one&quot;&gt;Falta um dia&lt;/item&gt;" errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/ui/res/values-pt/plurals.xml" line="8" column="9" />
+    </issue>
+    <issue id="ImpliedQuantity" message="The quantity `'one'` matches more than one specific number in this locale (0, 1), but the message did not include a formatting argument (such as `%d`). This is usually an internationalization error. See full issue explanation for more." errorLine1="        &lt;item quantity=&quot;one&quot;&gt;එක දවසක් ඉතුරුයි&lt;/item&gt;" errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/ui/res/values-si/plurals.xml" line="8" column="9" />
+    </issue>
+    <issue id="ImpliedQuantity" message="The quantity `'one'` matches more than one specific number in this locale (1, 21, 31, 41, 51, 61, 71, 81, 101, 1001, …), but the message did not include a formatting argument (such as `%d`). This is usually an internationalization error. See full issue explanation for more." errorLine1="        &lt;item quantity=&quot;one&quot;&gt;Преостао је један дан&lt;/item&gt;" errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/ui/res/values-sr-rSP/plurals.xml" line="9" column="9" />
+    </issue>
+    <issue id="ImpliedQuantity" message="The quantity `'one'` matches more than one specific number in this locale (1, 101, 201, 301, 401, 501, 601, 701, 1001, …), but the message did not include a formatting argument (such as `%d`). This is usually an internationalization error. See full issue explanation for more." errorLine1="        &lt;item quantity=&quot;one&quot;&gt;Preostal je še en dan&lt;/item&gt;" errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/ui/res/values-sl/plurals.xml" line="10" column="9" />
+    </issue>
+    <issue id="ImpliedQuantity" message="The quantity `'one'` matches more than one specific number in this locale (1, 21, 31, 41, 51, 61, 71, 81, 101, 1001, …), but the message did not include a formatting argument (such as `%d`). This is usually an internationalization error. See full issue explanation for more." errorLine1="        &lt;item quantity=&quot;one&quot;&gt;Застаўся адзін дзень&lt;/item&gt;" errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/ui/res/values-be/plurals.xml" line="10" column="9" />
+    </issue>
+    <issue id="ImpliedQuantity" message="The quantity `'one'` matches more than one specific number in this locale (1, 21, 31, 41, 51, 61, 71, 81, 101, 1001, …), but the message did not include a formatting argument (such as `%d`). This is usually an internationalization error. See full issue explanation for more." errorLine1="        &lt;item quantity=&quot;one&quot;&gt;Залишився один день&lt;/item&gt;" errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/ui/res/values-uk/plurals.xml" line="10" column="9" />
+    </issue>
+    <issue id="ImpliedQuantity" message="The quantity `'one'` matches more than one specific number in this locale (0, 1), but the message did not include a formatting argument (such as `%d`). This is usually an internationalization error. See full issue explanation for more." errorLine1="        &lt;item quantity=&quot;one&quot;&gt;یک ساعت باقی مانده&lt;/item&gt;" errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/ui/res/values-fa/plurals.xml" line="12" column="9" />
+    </issue>
+    <issue id="ImpliedQuantity" message="The quantity `'one'` matches more than one specific number in this locale (0, 1), but the message did not include a formatting argument (such as `%d`). This is usually an internationalization error. See full issue explanation for more." errorLine1="        &lt;item quantity=&quot;one&quot;&gt;Une heure restante&lt;/item&gt;" errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/ui/res/values-fr/plurals.xml" line="12" column="9" />
+    </issue>
+    <issue id="ImpliedQuantity" message="The quantity `'one'` matches more than one specific number in this locale (0, 1), but the message did not include a formatting argument (such as `%d`). This is usually an internationalization error. See full issue explanation for more." errorLine1="        &lt;item quantity=&quot;one&quot;&gt;Falta uma hora&lt;/item&gt;" errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/ui/res/values-pt-rBR/plurals.xml" line="12" column="9" />
+    </issue>
+    <issue id="ImpliedQuantity" message="The quantity `'one'` matches more than one specific number in this locale (0, 1), but the message did not include a formatting argument (such as `%d`). This is usually an internationalization error. See full issue explanation for more." errorLine1="        &lt;item quantity=&quot;one&quot;&gt;Falta 1 hora&lt;/item&gt;" errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/ui/res/values-pt/plurals.xml" line="12" column="9" />
+    </issue>
+    <issue id="ImpliedQuantity" message="The quantity `'one'` matches more than one specific number in this locale (0, 1), but the message did not include a formatting argument (such as `%d`). This is usually an internationalization error. See full issue explanation for more." errorLine1="        &lt;item quantity=&quot;one&quot;&gt;පැයක් ඉතිරියි&lt;/item&gt;" errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/ui/res/values-si/plurals.xml" line="12" column="9" />
+    </issue>
+    <issue id="ImpliedQuantity" message="The quantity `'one'` matches more than one specific number in this locale (1, 21, 31, 41, 51, 61, 71, 81, 101, 1001, …), but the message did not include a formatting argument (such as `%d`). This is usually an internationalization error. See full issue explanation for more." errorLine1="        &lt;item quantity=&quot;one&quot;&gt;Преостао је један сат&lt;/item&gt;" errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/ui/res/values-sr-rSP/plurals.xml" line="14" column="9" />
+    </issue>
+    <issue id="ImpliedQuantity" message="The quantity `'one'` matches more than one specific number in this locale (0, 1), but the message did not include a formatting argument (such as `%d`). This is usually an internationalization error. See full issue explanation for more." errorLine1="        &lt;item quantity=&quot;one&quot;&gt;یک دقیقه باقی مانده است&lt;/item&gt;" errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/ui/res/values-fa/plurals.xml" line="16" column="9" />
+    </issue>
+    <issue id="ImpliedQuantity" message="The quantity `'one'` matches more than one specific number in this locale (0, 1), but the message did not include a formatting argument (such as `%d`). This is usually an internationalization error. See full issue explanation for more." errorLine1="        &lt;item quantity=&quot;one&quot;&gt;Une minute restante&lt;/item&gt;" errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/ui/res/values-fr/plurals.xml" line="16" column="9" />
+    </issue>
+    <issue id="ImpliedQuantity" message="The quantity `'one'` matches more than one specific number in this locale (0, 1), but the message did not include a formatting argument (such as `%d`). This is usually an internationalization error. See full issue explanation for more." errorLine1="        &lt;item quantity=&quot;one&quot;&gt;Falta um minuto&lt;/item&gt;" errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/ui/res/values-pt-rBR/plurals.xml" line="16" column="9" />
+    </issue>
+    <issue id="ImpliedQuantity" message="The quantity `'one'` matches more than one specific number in this locale (0, 1), but the message did not include a formatting argument (such as `%d`). This is usually an internationalization error. See full issue explanation for more." errorLine1="        &lt;item quantity=&quot;one&quot;&gt;Falta 1 minuto&lt;/item&gt;" errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/ui/res/values-pt/plurals.xml" line="16" column="9" />
+    </issue>
+    <issue id="ImpliedQuantity" message="The quantity `'one'` matches more than one specific number in this locale (0, 1), but the message did not include a formatting argument (such as `%d`). This is usually an internationalization error. See full issue explanation for more." errorLine1="        &lt;item quantity=&quot;one&quot;&gt;විනාඩියක් ඉතිරියි&lt;/item&gt;" errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/ui/res/values-si/plurals.xml" line="16" column="9" />
+    </issue>
+    <issue id="ImpliedQuantity" message="The quantity `'one'` matches more than one specific number in this locale (1, 101, 201, 301, 401, 501, 601, 701, 1001, …), but the message did not include a formatting argument (such as `%d`). This is usually an internationalization error. See full issue explanation for more." errorLine1="        &lt;item quantity=&quot;one&quot;&gt;Preostala je še ena ura&lt;/item&gt;" errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/ui/res/values-sl/plurals.xml" line="16" column="9" />
+    </issue>
+    <issue id="ImpliedQuantity" message="The quantity `'one'` matches more than one specific number in this locale (1, 21, 31, 41, 51, 61, 71, 81, 101, 1001, …), but the message did not include a formatting argument (such as `%d`). This is usually an internationalization error. See full issue explanation for more." errorLine1="        &lt;item quantity=&quot;one&quot;&gt;Засталася адна гадзіна&lt;/item&gt;" errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/ui/res/values-be/plurals.xml" line="16" column="9" />
+    </issue>
+    <issue id="ImpliedQuantity" message="The quantity `'one'` matches more than one specific number in this locale (1, 21, 31, 41, 51, 61, 71, 81, 101, 1001, …), but the message did not include a formatting argument (such as `%d`). This is usually an internationalization error. See full issue explanation for more." errorLine1="        &lt;item quantity=&quot;one&quot;&gt;Залишилась одна година&lt;/item&gt;" errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/ui/res/values-uk/plurals.xml" line="16" column="9" />
+    </issue>
+    <issue id="ImpliedQuantity" message="The quantity `'one'` matches more than one specific number in this locale (1, 21, 31, 41, 51, 61, 71, 81, 101, 1001, …), but the message did not include a formatting argument (such as `%d`). This is usually an internationalization error. See full issue explanation for more." errorLine1="        &lt;item quantity=&quot;one&quot;&gt;Преостао је један минут&lt;/item&gt;" errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/ui/res/values-sr-rSP/plurals.xml" line="19" column="9" />
+    </issue>
+    <issue id="ImpliedQuantity" message="The quantity `'one'` matches more than one specific number in this locale (1, 101, 201, 301, 401, 501, 601, 701, 1001, …), but the message did not include a formatting argument (such as `%d`). This is usually an internationalization error. See full issue explanation for more." errorLine1="        &lt;item quantity=&quot;one&quot;&gt;Preostala je še ena minuta&lt;/item&gt;" errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/ui/res/values-sl/plurals.xml" line="22" column="9" />
+    </issue>
+    <issue id="ImpliedQuantity" message="The quantity `'one'` matches more than one specific number in this locale (1, 21, 31, 41, 51, 61, 71, 81, 101, 1001, …), but the message did not include a formatting argument (such as `%d`). This is usually an internationalization error. See full issue explanation for more." errorLine1="        &lt;item quantity=&quot;one&quot;&gt;Засталася адна хвіліна&lt;/item&gt;" errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/ui/res/values-be/plurals.xml" line="22" column="9" />
+    </issue>
+    <issue id="ImpliedQuantity" message="The quantity `'one'` matches more than one specific number in this locale (1, 21, 31, 41, 51, 61, 71, 81, 101, 1001, …), but the message did not include a formatting argument (such as `%d`). This is usually an internationalization error. See full issue explanation for more." errorLine1="        &lt;item quantity=&quot;one&quot;&gt;Залишилася одна хвилина&lt;/item&gt;" errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location file="src/ui/res/values-uk/plurals.xml" line="22" column="9" />
+    </issue>
+</issues>

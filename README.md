@@ -56,6 +56,8 @@ bash upstream/gradlew -p upstream :main:assembleUiOvpn2Debug
 
 内核固定到 OpenVPN for Android v0.7.64，提交 `73ce3c99dde39207990d66c21be8201228cd1f09`，及其递归子模块。`scripts/prepare.py` 检查固定提交后，将 `overlay/` 复制到内核的 UI 源集，修改应用 ID 和启动入口；保留内核 VPN 服务及状态监听机制。包名为 `com.aurora.freevpn`，最低 Android 8.0。升级内核时应明确修改固定提交并重新验证，不自动跟随上游主分支。
 
+`config/lint-baseline.xml` 记录固定内核中原有的 36 项 `ImpliedQuantity` 多语言数量词资源问题，路径均为未修改的上游 `src/ui/res/values-*/plurals.xml`。本项目新增源码不在基线内；没有关闭 lint 的错误阻断。测试会核对基线的数量、检查类型和文件范围。APK 生成、上传与 lint 分步执行，检查报告保留在 Actions。
+
 ## 已知限制与验收
 
 - 当前自动发现只有 VPN Gate，一个公共来源；只纳入可预检的 OpenVPN TCP 线路，不含 WireGuard、VLESS、Trojan 或 UDP。
