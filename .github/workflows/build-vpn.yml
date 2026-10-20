@@ -67,7 +67,9 @@ jobs:
 
       - name: Build libbox AARs
         working-directory: sing-box
-        run: go run ./cmd/internal/build_libbox
+        run: |
+          mkdir -p ../sing-box-for-android/app/libs
+          go run ./cmd/internal/build_libbox
 
       - name: Overlay NodeAtlas discovery UI
         shell: bash
