@@ -230,7 +230,7 @@ public final class MainActivity extends Activity implements VpnStatus.StateListe
             (diagnostics.isEmpty()?getPreferences(0).getString("last_diagnostics","尚无连接记录"):String.join("\n",diagnostics));
         new AlertDialog.Builder(this).setTitle("连接诊断（无密钥）").setMessage(report)
             .setPositiveButton("关闭",null).setNeutralButton("复制",(d,w)->{
-                ((ClipboardManager)getSystemService(CLIPBOARD_SERVICE)).setPrimaryClip(ClipData.newPlainText("Aurora diagnostics",report));toast("诊断已复制");
+                ((android.content.ClipboardManager)getSystemService(CLIPBOARD_SERVICE)).setPrimaryClip(ClipData.newPlainText("Aurora diagnostics",report));toast("诊断已复制");
             }).show();
     }
     private void toggle(){
