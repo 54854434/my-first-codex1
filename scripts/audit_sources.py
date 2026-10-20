@@ -12,6 +12,7 @@ import urllib.parse
 OUT = Path('.checks/source-audit')
 OUT.mkdir(parents=True, exist_ok=True)
 PAGES = {
+    'vpnbook-config': 'https://www.vpnbook.com/api/openvpn?hostname=de20.vpnbook.com&protocol=tcp443',
     'vpnbook': 'https://www.vpnbook.com/freevpn/openvpn',
     'ipspeed': 'https://ipspeed.info/free-openvpn.php',
     'vpngate-mirrors': 'https://www.vpngate.net/en/sites.aspx',
@@ -57,3 +58,4 @@ with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool:
     reports=list(pool.map(inspect,PAGES.items()))
 (OUT/'report.json').write_text(json.dumps(reports,ensure_ascii=False,indent=2))
 for r in reports:print(json.dumps({k:v for k,v in r.items() if k not in ('entry_lines','script_hints')},ensure_ascii=False))
+
