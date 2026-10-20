@@ -37,6 +37,7 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
+          cache: gradle
 
       - name: Set up Go
         uses: actions/setup-go@v5
@@ -65,11 +66,26 @@ jobs:
           go install github.com/sagernet/gomobile/cmd/gomobile@v0.1.13
           go install github.com/sagernet/gomobile/cmd/gobind@v0.1.13
 
+      - name: Restore libbox AAR cache
+        id: libbox-cache
+        uses: actions/cache@v4
+        with:
+          path: sing-box-for-android/app/libs
+          key: nodeatlas-libbox-${{ runner.os }}-dfb80349-ndk28-go1.26.8
+
       - name: Build libbox AARs
+        if: steps.libbox-cache.outputs.cache-hit != 'true'
         working-directory: sing-box
         run: |
           mkdir -p ../sing-box-for-android/app/libs
           go run ./cmd/internal/build_libbox
+
+      - name: Verify libbox AARs
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s sing-box-for-android/app/libs/libbox.aar
+          test -s sing-box-for-android/app/libs/libbox-legacy.aar
 
       - name: Overlay NodeAtlas discovery UI
         shell: bash
@@ -93,7 +109,7 @@ jobs:
           if end < 0:
               raise SystemExit("SFA MainActivity closing tag was not found")
           block = text[start:end]
-          block, removed = re.subn(r'\s*<action android:name="android.intent.action.MAIN" />\s*<category android:name="android.intent.category.LAUNCHER" />', "", block, count=1)
+          block, removed = re.subn(r'\s*<intent-filter>\s*<action android:name="android.intent.action.MAIN" />\s*<category android:name="android.intent.category.LAUNCHER" />\s*</intent-filter>', "", block, count=1)
           if removed != 1:
               raise SystemExit("SFA launcher block was not found")
           text = text[:start] + block + text[end:]
