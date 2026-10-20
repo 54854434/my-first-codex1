@@ -37,6 +37,9 @@ class OverlayTests(unittest.TestCase):
             self.assertEqual(build.count('applicationId = "com.aurora.freevpn"'), 1)
             self.assertIn("minSdk = 26", build)
             self.assertEqual(native.read_text().count("#define HAVE_BASENAME 1"), 1)
+            properties = (up / "gradle.properties").read_text()
+            self.assertEqual(properties.count("org.gradle.jvmargs="), 1)
+            self.assertIn("-Xmx4g", properties)
             main_app = ET.parse(up / "main/src/main/AndroidManifest.xml").getroot().find("application")
             self.assertEqual(main_app.get(a+"allowBackup"), "false")
 

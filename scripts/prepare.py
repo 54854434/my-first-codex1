@@ -3,6 +3,7 @@
 from pathlib import Path
 import shutil
 import subprocess
+import re
 import xml.etree.ElementTree as ET
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -57,7 +58,15 @@ def prepare():
     if 'applicationId = "com.aurora.freevpn"' not in content:
         content = content.replace("defaultConfig {", 'defaultConfig {\n        applicationId = "com.aurora.freevpn"', 1)
     content = content.replace("minSdk = 21", "minSdk = 26")
+    # One installable APK covering the same four ABIs, without simultaneous split packagers.
+    content = content.replace("isEnable = true", "isEnable = false")
     gradle.write_text(content)
+    properties = UPSTREAM / "gradle.properties"
+    props = properties.read_text() if properties.exists() else ""
+    for key, value in {"org.gradle.jvmargs": "-Xmx4g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8", "org.gradle.workers.max": "2"}.items():
+        props = re.sub(r"(?m)^" + re.escape(key) + r"=.*$", "", props)
+        props += f"\n{key}={value}\n"
+    properties.write_text(props)
     # Android API 23+ provides GNU basename in libc. The upstream API-21 config
     # otherwise declares a conflicting fallback when our minimum is API 26.
     native_config = UPSTREAM / "main/src/main/cpp/openvpn-config/config.h"
