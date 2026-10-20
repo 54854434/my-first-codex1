@@ -16,7 +16,7 @@ adb shell appops set com.aurora.freevpn ACTIVATE_VPN allow
 adb shell pm grant com.aurora.freevpn android.permission.POST_NOTIFICATIONS
 adb shell input keyevent 82
 set +e
-timeout 480 adb shell am instrument -w -r com.aurora.freevpn.test/com.aurora.vpn.RealConnectionInstrumentation > .checks/android-proof/instrumentation.txt 2>&1
+timeout 570 adb shell am instrument -w -r com.aurora.freevpn.test/com.aurora.vpn.RealConnectionInstrumentation > .checks/android-proof/instrumentation.txt 2>&1
 instrument_status=$?
 adb exec-out run-as com.aurora.freevpn cat files/connection-proof.json > .checks/android-proof/connection-proof.json
 adb exec-out run-as com.aurora.freevpn cat files/connection-proof.png > .checks/android-proof/connection-proof.png
@@ -34,4 +34,6 @@ print(json.dumps(report,ensure_ascii=False,indent=2))
 assert report['success'], 'Android actual connection failed; see proof for native errors'
 assert report['native_connected'] and report['android_vpn_network'] and report['egress_changed']
 assert report['https_bytes']>0
+assert report['persisted_priority'] and report['reconnect_attempts']==1 and report['reconnect_https_bytes']>0
 PY
+

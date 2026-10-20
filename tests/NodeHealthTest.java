@@ -1,0 +1,21 @@
+package com.aurora.vpn;
+import java.util.*;
+public final class NodeHealthTest {
+    static void check(boolean b,String message){if(!b)throw new AssertionError(message);}
+    static Node n(String ip,String code,int latency){Node n=new Node(ip,code,code,443,999999999,"fixture");n.latencyMs=latency;return n;}
+    public static void main(String[] args){
+        long now=100000000L;Node a=n("8.8.8.8","US",20),b=n("1.1.1.1","AU",1),c=n("9.9.9.9","US",3);
+        NodeHealth h=new NodeHealth();h.success("wifi",a,now,400);
+        check(h.select(Arrays.asList(b,a,c),"wifi",now,6).get(0)==a,"Verified node must outrank TCP latency");
+        check(h.select(Arrays.asList(b,a,c),"mobile",now,6).get(0)==b,"Wi-Fi evidence must not affect mobile ranking");
+        h.failure("wifi",a,now+1);check(!h.select(Arrays.asList(a,b),"wifi",now+1,6).contains(a),"Failure cooldown must exclude endpoint");
+        check(h.cooldown("wifi",a,now+60001)==0,"Cooldown must expire");h.failure("wifi",a,now+60002);
+        check(h.cooldown("wifi",a,now+60002)==120000,"Repeated failure extends cooldown");
+        h.success("wifi",a,now+70000,800);check(h.cooldown("wifi",a,now+70000)==0,"Actual success resets failures");
+        NodeHealth loaded=NodeHealth.decode(h.encode(now+70000),now+70000);check(loaded.verified("wifi",a,now+70000),"Evidence survives restart");
+        check(!loaded.verified("wifi",a,now+7*3600000),"Stale evidence cannot stay preferred");
+        check(!NodeHealth.decode("corrupt",now).verified("wifi",a,now),"Corrupt cache is ignored");
+        check(h.select(Arrays.asList(a,a,b),"wifi",now+70000,6).size()==2,"Endpoint deduplication");
+        System.out.println("Node evidence, network separation, cooldown and persistence checks passed");
+    }
+}

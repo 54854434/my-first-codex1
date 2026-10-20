@@ -36,7 +36,7 @@ public final class GateParser {
         "verify-x509-name","tls-client","tls-version-min","tls-cipher","key-direction","auth-nocache",
         "comp-lzo","compress","allow-compression","connect-retry","connect-timeout","connect-retry-max",
         "tun-mtu","mssfix","sndbuf","rcvbuf","reneg-sec","keepalive","ping","ping-restart",
-        "pull","auth-user-pass","redirect-gateway","route-delay","explicit-exit-notify"));
+        "fast-io","pull","auth-user-pass","redirect-gateway","route-delay","explicit-exit-notify"));
     public static Node parseConfig(String ip,String country,String code,long bps,String raw) {
         if(!publicIp(ip) || raw.length()>65536) throw new IllegalArgumentException("Invalid endpoint");
         String block=null; StringBuilder safe=new StringBuilder(); int port=0, remotes=0;
@@ -88,6 +88,8 @@ public final class GateParser {
                 String raw=new String(Base64.getDecoder().decode(row.get(header.get("OpenVPN_ConfigData_Base64"))),StandardCharsets.UTF_8);
                 Node node=parseConfig(row.get(header.get("IP")),row.get(header.get("CountryLong")),
                     row.get(header.get("CountryShort")).toUpperCase(Locale.ROOT),Long.parseLong(row.get(header.get("Speed"))),raw);
+                if(header.containsKey("AuroraSource")&&row.get(header.get("AuroraSource")).equals("VPNBook"))
+                    node=new Node(node.ip,node.country,node.code,node.port,node.advertisedBps,node.config,"VPNBook");
                 if(seen.add(node.ip+":"+node.port))result.add(node);
             }catch(IllegalArgumentException|IndexOutOfBoundsException ignored){ /* one bad row does not poison the feed */ }
         }
@@ -95,3 +97,4 @@ public final class GateParser {
         result.sort(Comparator.comparingLong((Node n)->n.advertisedBps).reversed());return result;
     }
 }
+

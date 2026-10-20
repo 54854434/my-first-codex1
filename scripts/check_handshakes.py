@@ -32,7 +32,7 @@ def check(profile):
         "VERIFY ERROR", "TLS Error", "Connection refused", "Network is unreachable",
         "Peer Connection Initiated", "Initialization Sequence Completed", "Options error", "AUTH_FAILED"))]
     ok = "Peer Connection Initiated" in output or "Initialization Sequence Completed" in output
-    return {"ip": profile.stem, "handshake": ok, "milestones": milestones[-6:],
+    return {"ip": profile.stem.split("-",1)[-1], "source": "VPNBook" if profile.stem.startswith("book-") else "VPN Gate", "handshake": ok, "milestones": milestones[-6:],
             "scope": "CI egress only; not tested on user phone"}
 
 with ThreadPoolExecutor(max_workers=3) as pool:
@@ -43,3 +43,4 @@ print(report.read_text())
 print(f"CI OpenVPN handshakes: {sum(x['handshake'] for x in results)}/{len(results)}")
 for profile in OUT.glob("*.ovpn"):
     profile.unlink()
+

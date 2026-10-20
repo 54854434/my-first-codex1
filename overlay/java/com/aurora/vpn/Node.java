@@ -3,13 +3,16 @@ package com.aurora.vpn;
 import java.util.Locale;
 
 public final class Node {
-    public final String ip, country, code, config;
+    public final String ip, country, code, config, source;
     public final int port;
     public final long advertisedBps;
     public volatile int latencyMs = -1;
     public volatile long checkedAt;
     public Node(String ip, String country, String code, int port, long bps, String config) {
-        this.ip=ip; this.country=country; this.code=code; this.port=port;
+        this(ip,country,code,port,bps,config,"VPN Gate");
+    }
+    public Node(String ip,String country,String code,int port,long bps,String config,String source){
+        this.source=source;this.ip=ip; this.country=country; this.code=code; this.port=port;
         this.advertisedBps=bps; this.config=config;
     }
     public boolean matches(String query){
@@ -37,3 +40,4 @@ public final class Node {
             + new String(Character.toChars(0x1F1E6+code.charAt(1)-'A'));
     }
 }
+

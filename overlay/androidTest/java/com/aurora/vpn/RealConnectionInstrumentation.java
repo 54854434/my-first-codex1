@@ -56,7 +56,29 @@ public final class RealConnectionInstrumentation extends Instrumentation {
                 SystemClock.sleep(500);
             }
             if(!success)throw new IOException("No verified VPN connection within test deadline");
-        }catch(Throwable error){try{report.put("error",error.toString());}catch(JSONException ignored){}}
+            Node first=(Node)value("selected");report.put("first_endpoint",first.ip+":"+first.port);report.put("first_source",first.source);
+            report.put("first_attempts",value("attempt"));
+            call("toggle");wait=SystemClock.elapsedRealtime()+12000;
+            while((Boolean)value("connecting")&&SystemClock.elapsedRealtime()<wait)SystemClock.sleep(200);
+            if((Boolean)value("connecting")||(Boolean)value("stopUnconfirmed"))throw new IOException("Disconnect did not complete");
+            // Recreate the Activity to prove local evidence persists across a real lifecycle restart.
+            runOnMainSync(()->activity.finish());SystemClock.sleep(1000);
+            activity=(MainActivity)startActivitySync(new Intent(context,MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+            call("connectBest");Node preferred=(Node)value("selected");
+            if(!preferred.ip.equals(first.ip)||preferred.port!=first.port)throw new IOException("Verified node was not preferred after Activity restart");
+            report.put("persisted_priority",true);success=false;wait=SystemClock.elapsedRealtime()+65000;
+            while(SystemClock.elapsedRealtime()<wait){
+                if((Boolean)value("connected")){
+                    if((Integer)value("attempt")!=1)throw new IOException("Preferred node was not reused on first attempt");
+                    TunnelCheck.Proof again=TunnelCheck.request(context,true);
+                    if(again.ip.equals(before.ip))throw new IOException("Reconnection did not change egress");
+                    report.put("reconnect_https_bytes",again.bytes);report.put("reconnect_vpn_ip",again.ip);report.put("reconnect_attempts",1);
+                    success=true;break;
+                }
+                SystemClock.sleep(500);
+            }
+            if(!success)throw new IOException("Preferred-node reconnection did not verify");
+        }catch(Throwable error){success=false;try{report.put("error",error.toString());}catch(JSONException ignored){}}
         finally{
             try{
                 report.put("success",success);report.put("elapsed_ms",System.currentTimeMillis()-started);
@@ -75,3 +97,4 @@ public final class RealConnectionInstrumentation extends Instrumentation {
         }
     }
 }
+
