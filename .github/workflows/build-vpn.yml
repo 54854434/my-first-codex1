@@ -155,9 +155,6 @@ jobs:
             apk="${apks[0]}"
           fi
           cp "$apk" dist/NodeAtlas-VPN-debug.apk
-          for split_apk in "${apks[@]}"; do
-            cp "$split_apk" "dist/$(basename "$split_apk")"
-          done
           cp app/src/main/assets/index.html dist/NodeAtlas-VPN.html
           cat > dist/SOURCE-NOTICES.txt <<'EOF'
           NodeAtlas VPN build
