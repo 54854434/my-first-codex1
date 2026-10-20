@@ -1,0 +1,136 @@
+name: Build NodeAtlas VPN
+
+on:
+  push:
+    branches:
+      - codex/node-atlas-vpn
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout NodeAtlas overlay
+        uses: actions/checkout@v4
+
+      - name: Checkout sing-box Android client
+        uses: actions/checkout@v4
+        with:
+          repository: SagerNet/sing-box-for-android
+          ref: bc73504fcb858400a939140ad785ed92f4c9f429
+          path: sing-box-for-android
+          fetch-depth: 1
+
+      - name: Checkout sing-box core
+        uses: actions/checkout@v4
+        with:
+          repository: SagerNet/sing-box
+          ref: dfb80349bf5779ec0a3f834c9ec2794345bff8f0
+          path: sing-box
+          fetch-depth: 1
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.26.8'
+          cache: false
+
+      - name: Set up Android NDK
+        uses: nttld/setup-ndk@v1
+        with:
+          ndk-version: r28
+
+      - name: Install gomobile toolchain
+        run: |
+          go install github.com/sagernet/gomobile/cmd/gomobile@v0.1.13
+          go install github.com/sagernet/gomobile/cmd/gobind@v0.1.13
+
+      - name: Build libbox AARs
+        working-directory: sing-box
+        run: go run ./cmd/internal/build_libbox
+
+      - name: Overlay NodeAtlas discovery UI
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp node-atlas/app/src/main/assets/index.html sing-box-for-android/app/src/main/assets/nodeatlas.html
+          mkdir -p sing-box-for-android/app/src/main/java/io/nekohasekai/sfa/nodeatlas
+          cp node-atlas/vpn-overlay/NodeAtlasActivity.java sing-box-for-android/app/src/main/java/io/nekohasekai/sfa/nodeatlas/NodeAtlasActivity.java
+          python3 - <<'PY'
+          from pathlib import Path
+
+          manifest = Path("sing-box-for-android/app/src/main/AndroidManifest.xml")
+          text = manifest.read_text()
+          launcher = '''                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />'''
+          if launcher not in text:
+              raise SystemExit("SFA launcher block was not found")
+          text = text.replace(launcher, "", 1)
+          anchor = '''        <activity
+            android:name=".compose.MainActivity"'''
+          node_atlas = '''        <activity
+            android:name=".nodeatlas.NodeAtlasActivity"
+            android:exported="true"
+            android:screenOrientation="portrait"
+            android:theme="@style/AppTheme">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+'''
+          if anchor not in text:
+              raise SystemExit("SFA MainActivity anchor was not found")
+          text = text.replace(anchor, node_atlas + anchor, 1)
+          manifest.write_text(text)
+
+          strings = Path("sing-box-for-android/app/src/main/res/values/strings.xml")
+          string_text = strings.read_text()
+          old = '<string name="app_name" translatable="false">sing-box</string>'
+          if old not in string_text:
+              raise SystemExit("SFA app_name was not found")
+          strings.write_text(string_text.replace(old, '<string name="app_name" translatable="false">NodeAtlas</string>', 1))
+          PY
+
+      - name: Build NodeAtlas VPN APK
+        working-directory: sing-box-for-android
+        run: ./gradlew --no-daemon --stacktrace :app:assembleOtherDebug
+
+      - name: Assemble deliverables
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          apk=$(find sing-box-for-android/app/build/outputs/apk -type f -name '*.apk' | head -n 1)
+          test -n "$apk"
+          cp "$apk" dist/NodeAtlas-VPN-debug.apk
+          cp node-atlas/app/src/main/assets/index.html dist/NodeAtlas-VPN.html
+          cat > dist/SOURCE-NOTICES.txt <<'EOF'
+          NodeAtlas VPN build
+
+          This APK combines the NodeAtlas discovery UI with the SagerNet sing-box-for-android client and sing-box core.
+          The upstream Android client and core are GPL-3.0-or-later; see the upstream repositories for complete source and license text:
+          https://github.com/SagerNet/sing-box-for-android
+          https://github.com/SagerNet/sing-box
+
+          NodeAtlas public-source discovery is intentionally untrusted. It only parses public HTTPS text feeds and labels risk;
+          it does not certify speed, ownership, legality, or privacy of any node.
+          EOF
+          sha256sum dist/* > dist/SHA256SUMS.txt
+
+      - name: Upload APK and HTML
+        uses: actions/upload-artifact@v4
+        with:
+          name: nodeatlas-vpn-build
+          path: dist
+          if-no-files-found: error
