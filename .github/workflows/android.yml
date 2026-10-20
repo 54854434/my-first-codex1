@@ -1,0 +1,47 @@
+name: Android APK
+on:
+  push:
+    branches: [main, 'codex/**']
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+      - name: Install native build prerequisites
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y swig ninja-build
+          sdkmanager 'platforms;android-36' 'build-tools;36.0.0' 'ndk;29.0.14206865' 'cmake;3.22.1'
+      - name: Test public feed parser and configuration boundary
+        run: bash scripts/test.sh
+      - name: Apply Aurora UI to pinned engine
+        run: python3 scripts/prepare.py
+      - name: Build integrated APK and lint
+        run: bash upstream/gradlew -p upstream :main:assembleUiOvpn2Debug :main:lintUiOvpn2Debug --stacktrace
+      - uses: actions/upload-artifact@v4
+        with:
+          name: aurora-free-vpn-debug
+          path: upstream/main/build/outputs/apk/uiOvpn2/debug/*.apk
+          if-no-files-found: error
+          retention-days: 14
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: build-reports
+          path: upstream/main/build/reports/
+          if-no-files-found: ignore
