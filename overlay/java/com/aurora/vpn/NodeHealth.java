@@ -27,11 +27,16 @@ public final class NodeHealth {
             .thenComparingInt(n->verified(scope,n,now)?entries.get(key(scope,n)).httpsMs:n.latencyMs>0?n.latencyMs:Integer.MAX_VALUE));
         List<Node> result=new ArrayList<>();Set<String> countries=new HashSet<>();
         for(Node n:eligible)if(result.size()<limit&&verified(scope,n,now)){result.add(n);countries.add(n.code);}
-        for(int tier=1;tier<=3;tier++){
-            for(Node n:eligible){int rank=verified(scope,n,now)?0:n.latencyMs>0?1:n.latencyMs==-1?2:3;
-                if(rank==tier&&result.size()<limit&&!countries.contains(n.code)&&!result.contains(n)){result.add(n);countries.add(n.code);}}
-            for(Node n:eligible){int rank=verified(scope,n,now)?0:n.latencyMs>0?1:n.latencyMs==-1?2:3;
-                if(rank==tier&&result.size()<limit&&!result.contains(n))result.add(n);}
+        Map<String,List<Node>> groups=new LinkedHashMap<>();
+        for(Node n:eligible)if(!result.contains(n))groups.computeIfAbsent(n.source,k->new ArrayList<>()).add(n);
+        boolean added=true;
+        while(result.size()<limit&&added){
+            added=false;
+            for(List<Node> group:groups.values())if(!group.isEmpty()&&result.size()<limit){
+                Node chosen=group.get(0);
+                for(Node n:group)if(!countries.contains(n.code)){chosen=n;break;}
+                group.remove(chosen);result.add(chosen);countries.add(chosen.code);added=true;
+            }
         }
         return result;
     }

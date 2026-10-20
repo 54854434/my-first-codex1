@@ -16,6 +16,9 @@ public final class NodeHealthTest {
         check(!loaded.verified("wifi",a,now+7*3600000),"Stale evidence cannot stay preferred");
         check(!NodeHealth.decode("corrupt",now).verified("wifi",a,now),"Corrupt cache is ignored");
         check(h.select(Arrays.asList(a,a,b),"wifi",now+70000,6).size()==2,"Endpoint deduplication");
+        List<Node> mixed=new ArrayList<>();for(int i=1;i<=8;i++){Node g=n("9.0.0."+i,"JP",300);mixed.add(g);Node book=new Node("8.0.0."+i,"US","US",443,0,"fixture","VPNBook");book.latencyMs=1;mixed.add(book);}
+        List<Node> selected=new NodeHealth().select(mixed,"wifi",now,6);
+        check(selected.stream().filter(x->x.source.equals("VPNBook")).count()==3,"Unverified candidates must not be monopolized by one provider");
         System.out.println("Node evidence, network separation, cooldown and persistence checks passed");
     }
 }

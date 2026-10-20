@@ -55,7 +55,7 @@ public final class MainActivity extends Activity implements VpnStatus.StateListe
         if(destroyed)return;
         if(verifying&&SystemClock.elapsedRealtime()>=verifyDeadline)endAttempt("隧道 HTTPS 验证超时",true);
         if(window.expired(SystemClock.elapsedRealtime())){
-            if(window.stage==AttemptWindow.Stage.CONNECTING)endAttempt("25 秒内未建立隧道（"+lastState+"）",true);
+            if(window.stage==AttemptWindow.Stage.CONNECTING)endAttempt("25 秒内未建立隧道（"+lastState+"）",!lastState.equals("NONETWORK"));
             else {auto=false;switching=false;connecting=false;connected=false;stopUnconfirmed=true;window.clear();
                 status="内核未确认停止，请到系统 VPN 设置断开";record(status);}
         }
@@ -285,7 +285,7 @@ public final class MainActivity extends Activity implements VpnStatus.StateListe
             VpnProfile p=parser.convertProfile();p.mName=selected.source+" · "+selected.country+" · "+selected.ip;
             if(p.mUsername==null||p.mUsername.isEmpty())p.mUsername="vpn";if(p.mPassword==null||p.mPassword.isEmpty())p.mPassword="vpn";p.mUseDefaultRoute=true;p.mUseDefaultRoutev6=true;
             p.mBlockUnusedAddressFamilies=true;p.mAllowedAppsVpn.clear();p.mAllowedAppsVpnAreDisallowed=true;
-            p.mOverrideDNS=true;p.mDNS1="1.1.1.1";p.mDNS2="8.8.8.8";
+            p.mOverrideDNS=false; // Retain the server-pushed DNS used by this tunnel.
             p.mConnectRetryMax="1";p.mConnectRetry="1";p.mConnectRetryMaxTime="1";
             for(Connection c:p.mConnections)c.mConnectTimeout=8;
             p.mUseCustomConfig=true;p.mCustomConfigOptions+="\nhand-window 15\n";
@@ -338,7 +338,9 @@ public final class MainActivity extends Activity implements VpnStatus.StateListe
         }else if(level==ConnectionStatus.LEVEL_NOTCONNECTED||level==ConnectionStatus.LEVEL_AUTH_FAILED){
             endAttempt(level==ConnectionStatus.LEVEL_AUTH_FAILED?"认证失败":"内核结束连接（"+state+"）",true);
             if(window.stopped())afterStopped();
-        }else if(level==ConnectionStatus.LEVEL_NONETWORK){endAttempt("手机网络不可用",false);}
+        }else if(level==ConnectionStatus.LEVEL_NONETWORK){cancelVerification();connected=false;connecting=true;
+            if(window.stage==AttemptWindow.Stage.CONNECTED)window.start(SystemClock.elapsedRealtime());
+            status="网络切换中，等待恢复（保留连接时限）";}
         else if(level==ConnectionStatus.LEVEL_VPNPAUSED){endAttempt("VPN 已暂停",false);}
         else if(level==ConnectionStatus.LEVEL_WAITING_FOR_USER_INPUT){status="内核等待授权或输入";}
         else {if(window.stage==AttemptWindow.Stage.CONNECTED){cancelVerification();window.start(SystemClock.elapsedRealtime());auto=false;}connecting=true;connected=false;status=state.equals("CONNECTRETRY")?"线路未响应，有限重试中":"正在建立隧道";}
