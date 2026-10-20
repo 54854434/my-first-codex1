@@ -22,6 +22,9 @@ class OverlayTests(unittest.TestCase):
             for folder in ("java", "res"):
                 (root / "overlay" / folder).mkdir(parents=True)
             (up / "main/build.gradle.kts").write_text("defaultConfig {\n minSdk = 21\n}")
+            native = up / "main/src/main/cpp/openvpn-config/config.h"
+            native.parent.mkdir(parents=True)
+            native.write_text("/* upstream API-21 configuration */\n")
             with patch.object(prepare, "ROOT", root), patch.object(prepare, "UPSTREAM", up), patch.object(prepare.subprocess, "check_output", return_value=prepare.PIN):
                 prepare.prepare()
                 prepare.prepare()
@@ -33,6 +36,7 @@ class OverlayTests(unittest.TestCase):
             build = (up / "main/build.gradle.kts").read_text()
             self.assertEqual(build.count('applicationId = "com.aurora.freevpn"'), 1)
             self.assertIn("minSdk = 26", build)
+            self.assertEqual(native.read_text().count("#define HAVE_BASENAME 1"), 1)
             main_app = ET.parse(up / "main/src/main/AndroidManifest.xml").getroot().find("application")
             self.assertEqual(main_app.get(a+"allowBackup"), "false")
 

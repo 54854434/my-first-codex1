@@ -58,6 +58,12 @@ def prepare():
         content = content.replace("defaultConfig {", 'defaultConfig {\n        applicationId = "com.aurora.freevpn"', 1)
     content = content.replace("minSdk = 21", "minSdk = 26")
     gradle.write_text(content)
+    # Android API 23+ provides GNU basename in libc. The upstream API-21 config
+    # otherwise declares a conflicting fallback when our minimum is API 26.
+    native_config = UPSTREAM / "main/src/main/cpp/openvpn-config/config.h"
+    native_text = native_config.read_text()
+    if "#define HAVE_BASENAME 1" not in native_text:
+        native_config.write_text("#define HAVE_BASENAME 1\n" + native_text)
     # Notification channels and the native VPN service retain upstream lifecycle behavior.
     print("Aurora overlay applied to", revision)
 

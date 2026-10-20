@@ -37,7 +37,7 @@ jobs:
       - name: Apply Aurora UI to pinned engine
         run: python3 scripts/prepare.py
       - name: Build integrated APK and lint
-        run: bash upstream/gradlew -p upstream :main:assembleUiOvpn2Debug :main:lintUiOvpn2Debug --stacktrace
+        run: bash upstream/gradlew -p upstream :main:compileUiOvpn2DebugJavaWithJavac :main:assembleUiOvpn2Debug :main:lintUiOvpn2Debug --stacktrace
       - uses: actions/upload-artifact@v4
         with:
           name: aurora-free-vpn-debug
