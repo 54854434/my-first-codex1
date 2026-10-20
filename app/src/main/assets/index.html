@@ -135,6 +135,92 @@
     @media (max-width: 1100px) { .summary { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
     @media (max-width: 1000px) { .app { grid-template-columns: 1fr; } .sidebar { display: none; } .mobile-nav { display: flex; } .workspace { grid-template-columns: 1fr; } .detail { position: static; } }
     @media (max-width: 670px) { main { padding: 18px 12px 30px; } .topbar { display: block; } .status { margin-top: 14px; } .hero { display: block; padding: 17px; } .hero-actions { justify-content: flex-start; min-width: 0; margin-top: 17px; } .hero-actions .btn { flex: 1 1 135px; } .summary { grid-template-columns: repeat(2, minmax(0,1fr)); } .source-form { grid-template-columns: 1fr; } .source-form .btn { width: 100%; } .node { grid-template-columns: 30px minmax(0,1fr); } .node-side { grid-column: 2; text-align: left; } }
+    /* Mobile-first VPN surface: the dashboard remains available below, while the
+       first screen behaves like a focused consumer VPN app. */
+    .app-top-controls { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; }
+    .round-control { width: 42px; height: 42px; flex: 0 0 42px; border-radius: 50%; color: #f2f7ff; background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.34); font-size: 22px; display: grid; place-items: center; }
+    .round-control:hover { transform: translateY(-1px); border-color: rgba(255,255,255,.7); }
+    .app-tabs { display: flex; flex: 1; max-width: 390px; padding: 4px; border-radius: 28px; background: rgba(11,27,83,.55); border: 1px solid rgba(255,255,255,.08); }
+    .app-tabs button { flex: 1; padding: 10px 16px; border-radius: 23px; color: rgba(255,255,255,.66); background: transparent; font-weight: 700; font-size: 15px; }
+    .app-tabs button.active { color: #fff; background: rgba(7,24,91,.92); box-shadow: 0 8px 18px rgba(3,11,45,.22); }
+    .topbar-copy { display: none; }
+    .status { margin-left: auto; }
+    .hero { min-height: 640px; position: relative; overflow: hidden; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding: 24px 18px 22px; border: 0; border-radius: 28px; background: radial-gradient(circle at 50% 43%, rgba(76,148,255,.23), transparent 29%), radial-gradient(circle at 50% 50%, rgba(37,87,204,.25), transparent 49%), linear-gradient(165deg, #29499a 0%, #182d75 48%, #09143f 100%); box-shadow: 0 22px 70px rgba(2,12,54,.34); }
+    .hero::before { content: ""; position: absolute; width: 600px; height: 600px; top: 152px; border-radius: 50%; border: 1px solid rgba(125,177,255,.11); box-shadow: 0 0 0 72px rgba(125,177,255,.035), 0 0 0 145px rgba(125,177,255,.025); pointer-events: none; }
+    .hero::after { content: ""; position: absolute; inset: 170px 0 0; opacity: .16; background-image: radial-gradient(rgba(119,165,255,.55) 1px, transparent 1px); background-size: 7px 7px; mask-image: radial-gradient(ellipse at center, #000 0%, transparent 64%); pointer-events: none; }
+    .hero > * { position: relative; z-index: 1; }
+    .quick-nav { margin: 36px 0 10px; padding: 12px 25px; border-radius: 19px; color: #fff; background: rgba(109,145,224,.35); font-weight: 800; font-size: 17px; letter-spacing: .04em; box-shadow: inset 0 1px rgba(255,255,255,.12); }
+    .hero-copy { display: contents; }
+    .hero-kicker { order: 5; margin-top: 6px; color: rgba(255,255,255,.82); font-size: 14px; letter-spacing: .02em; text-transform: none; }
+    .hero-kicker .dot { width: 8px; height: 8px; background: #67e6d3; box-shadow: 0 0 12px #67e6d3; }
+    .hero h2 { order: 6; margin: 5px 0 0; color: rgba(255,255,255,.91); font-size: 23px; letter-spacing: .02em; }
+    .hero-selection { order: 7; max-width: 100%; margin: 4px 0 0 !important; color: rgba(255,255,255,.58) !important; font-size: 12px; text-align: center; }
+    .power-stage { order: 2; margin: 28px 0 16px; }
+    .power-button { width: 214px; height: 214px; padding: 0; border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 9px; color: #fff !important; background: linear-gradient(155deg, #66e4d2, #5db0ee) !important; border: 9px solid rgba(113,155,235,.32) !important; box-shadow: 0 0 0 16px rgba(101,152,239,.13), 0 20px 42px rgba(0,0,0,.22), inset 0 2px 14px rgba(255,255,255,.2); }
+    .power-button:hover { transform: scale(1.015); border-color: rgba(155,205,255,.44) !important; }
+    .power-button:active { transform: scale(.985); }
+    .power-symbol { font-size: 84px; font-weight: 300; line-height: .9; font-family: Arial, sans-serif; }
+    .power-label { font-size: 14px; font-weight: 800; letter-spacing: .08em; }
+    .mode-area { order: 3; display: flex; flex-direction: column; align-items: center; }
+    .mode-switch { margin-top: 0; background: rgba(236,242,255,.85); border: 3px solid rgba(255,255,255,.2); box-shadow: inset 0 1px rgba(0,0,0,.12); }
+    .mode-switch button { color: #29345f; min-width: 92px; padding: 8px 12px; }
+    .mode-switch button.active { color: #fff; background: #38436d; }
+    .mode-hint { max-width: 300px; color: rgba(255,255,255,.6) !important; text-align: center; }
+    .hero-node-row { order: 8; width: min(100%, 520px); margin-top: 19px; display: flex; align-items: center; gap: 10px; }
+    .selected-node-card { flex: 1; min-width: 0; display: flex; align-items: center; gap: 12px; padding: 13px 16px; border-radius: 26px; color: #fff; background: rgba(148,174,237,.22); border: 1px solid rgba(255,255,255,.08); text-align: left; cursor: pointer; }
+    .selected-node-card:hover { background: rgba(148,174,237,.33); }
+    .node-flag { width: 36px; height: 26px; display: grid; place-items: center; flex: 0 0 36px; border-radius: 8px; background: rgba(255,255,255,.13); font-size: 18px; }
+    .node-card-copy { display: grid; min-width: 0; }
+    .node-card-copy small { color: rgba(255,255,255,.54); font-size: 10px; }
+    .node-card-copy strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 16px; }
+    .node-card-arrow { margin-left: auto; color: rgba(255,255,255,.75); font-size: 20px; }
+    .hero-actions { order: 9; min-width: 0; margin-top: 15px; justify-content: center; }
+    .hero-actions .btn { color: rgba(255,255,255,.78); background: rgba(255,255,255,.08); border-color: rgba(255,255,255,.13); }
+    .hero-actions .btn:hover { border-color: rgba(255,255,255,.48); }
+    .country-group { overflow: hidden; border-radius: 17px; background: rgba(255,255,255,.94); border: 1px solid rgba(22,44,100,.08); }
+    .country-header { width: 100%; display: flex; align-items: center; gap: 14px; padding: 14px 15px; color: #27315b; background: transparent; text-align: left; }
+    .country-header:hover { background: rgba(66,102,188,.08); }
+    .country-flag { width: 43px; height: 43px; display: grid; place-items: center; flex: 0 0 43px; border-radius: 50%; background: #edf2ff; font-size: 27px; }
+    .country-copy { display: grid; min-width: 0; }
+    .country-copy strong { font-size: 16px; }
+    .country-copy small { margin-top: 2px; color: #8b93aa; font-size: 12px; }
+    .country-chevron { margin-left: auto; color: #6e7484; font-size: 25px; line-height: 1; }
+    .country-items { display: grid; gap: 7px; padding: 0 10px 10px; }
+    .country-items .node { color: #27315b; background: #f7f9ff; border-color: #e9edfa; }
+    .country-items .node-main .node-title strong { color: #27315b; }
+    .country-items .node-meta, .country-items .node-title small { color: #8992a9; }
+    body.telegram-page { background: #f7f8fc; color: #2d344f; }
+    body.telegram-page main { max-width: 720px; }
+    body.telegram-page .round-control { color: #3b425e; background: rgba(35,48,93,.06); border-color: rgba(35,48,93,.12); }
+    body.telegram-page .app-tabs { background: #e9edfa; }
+    body.telegram-page .app-tabs button { color: #79829c; }
+    body.telegram-page .app-tabs button.active { color: #2d3e86; background: #fff; }
+    body.telegram-page .workspace > .left-column > .card, body.telegram-page .detail { background: #fff; border-color: #e7eaf3; box-shadow: 0 8px 30px rgba(36,51,96,.06); }
+    body.telegram-page .card-head { border-color: #edf0f7; }
+    body.telegram-page .card-head h2, body.telegram-page .detail-title h3 { color: #2d344f; }
+    body.telegram-page .toolbar .field { background: #f6f7fb; border-color: #e7eaf3; color: #7e879f; }
+    body.telegram-page .toolbar .field input, body.telegram-page .toolbar .field select { color: #303854; }
+    .summary, .sourcesCard, .workspace > .left-column > .card:not(#sourcesCard), .detail, .notice[style] { border-color: rgba(255,255,255,.11); }
+    .summary { margin-top: 16px; }
+    @media (min-width: 1001px) {
+      .app { display: block; }
+      .sidebar { display: none; }
+      main { max-width: 720px; margin: 0 auto; padding: 22px 18px 40px; }
+      .summary { grid-template-columns: repeat(3, 1fr); }
+      .workspace { grid-template-columns: 1fr; }
+      .detail { position: static; }
+    }
+    @media (max-width: 670px) {
+      main { padding: 12px 10px 25px; }
+      .topbar { margin-bottom: 12px; }
+      .status { display: none; }
+      .hero { min-height: 635px; border-radius: 25px; padding-left: 13px; padding-right: 13px; }
+      .power-button { width: 200px; height: 200px; }
+      .power-symbol { font-size: 76px; }
+      .summary { display: none; }
+      .mobile-nav { display: none; }
+      .workspace { margin-top: 14px; }
+    }
   </style>
 </head>
 <body>
@@ -153,7 +239,15 @@
 
     <main>
       <div class="topbar">
-        <div><h1 id="pageTitle">VPN 服务</h1><p class="subtitle" id="pageSubtitle">节点选择、风险提示和连接控制都在当前页面完成；首次连接仍需一次系统 VPN 授权。</p></div>
+        <div class="app-top-controls">
+          <button class="round-control" type="button" aria-label="账户">◯</button>
+          <div class="app-tabs" role="tablist" aria-label="主页面">
+            <button class="active" type="button" data-tab="vpn">加速</button>
+            <button type="button" data-tab="telegram">Telegram</button>
+          </div>
+          <button class="round-control" type="button" aria-label="设置">⚙</button>
+        </div>
+        <div class="topbar-copy"><h1 id="pageTitle">VPN 服务</h1><p class="subtitle" id="pageSubtitle">节点选择、风险提示和连接控制都在当前页面完成；首次连接仍需一次系统 VPN 授权。</p></div>
         <div class="status"><span class="dot" id="platformDot"></span><span id="platformStatus">浏览器模式</span></div>
       </div>
 
@@ -163,20 +257,32 @@
       </div>
 
       <section class="card hero" id="vpnHero">
+        <div class="quick-nav">✦ 常用导航 ✦</div>
         <div class="hero-copy">
           <div class="hero-kicker"><span class="dot off" id="vpnDot"></span><span id="vpnStateLabel">未连接</span></div>
           <h2 id="vpnStatus">准备连接</h2>
           <p class="hero-selection" id="vpnSelection">先刷新或导入一个通用 VPN 节点，再选择连接。</p>
+        </div>
+        <div class="power-stage">
+          <button class="btn primary power-button" id="connectBtn" aria-label="连接或断开 VPN"><span class="power-symbol">⏻</span><span class="power-label" id="powerButtonLabel">连接</span></button>
+        </div>
+        <div class="mode-area">
           <div class="mode-switch" role="tablist" aria-label="VPN 模式">
             <button id="modeSmartBtn" class="active" type="button">智能模式</button>
             <button id="modeGlobalBtn" type="button">全局模式</button>
           </div>
           <p class="mode-hint" id="modeHint">智能模式：内网/本地地址直连，其余流量通过所选节点。</p>
         </div>
+        <div class="hero-node-row">
+          <button class="selected-node-card" id="selectedNodeCard" type="button">
+            <span class="node-flag" id="selectedNodeFlag">◎</span>
+            <span class="node-card-copy"><small>当前节点</small><strong id="selectedNodeName">未选择节点</strong></span>
+            <span class="node-card-arrow">⌄</span>
+          </button>
+        </div>
         <div class="hero-actions">
-          <button class="btn primary" id="connectBtn">连接当前节点</button>
-          <button class="btn" id="heroRefreshBtn">刷新节点</button>
-          <button class="btn" id="heroTestBtn">测速</button>
+          <button class="btn" id="heroRefreshBtn">↻ 刷新节点</button>
+          <button class="btn" id="heroTestBtn">⌁ 测速</button>
         </div>
       </section>
 
@@ -247,7 +353,7 @@
 
       const $ = (id) => document.getElementById(id);
       const isAndroid = !!window.Android && typeof window.Android.getPlatform === 'function';
-      const state = { sources: [], nodes: [], selectedId: null, pending: new Map(), testRun: 0, page: 'vpn', mode: 'smart', vpnStatus: 'stopped', vpnMessage: '' };
+      const state = { sources: [], nodes: [], selectedId: null, pending: new Map(), testRun: 0, page: 'vpn', mode: 'smart', vpnStatus: 'stopped', vpnMessage: '', openCountries: {} };
       const MAX_IMPORTED_NODES = 600;
       const publicSources = [
         {name: '公开目录 · SoliSpirit Telegram MTProto', url: 'https://raw.githubusercontent.com/SoliSpirit/mtproto/master/all_proxies.txt'},
@@ -316,11 +422,32 @@
       }
 
       function baseNode(raw, source, sourceType) {
-        return { id: uid(), raw, source: source || '手动导入', sourceType: sourceType || 'manual', addedAt: Date.now(), latency: null, status: 'new', kind: 'unknown', name: '', host: '', port: '', user: '', password: '', secret: '', params: {}, risk: 'high', riskScore: 0, riskReasons: [] };
+        return { id: uid(), raw, source: source || '手动导入', sourceType: sourceType || 'manual', addedAt: Date.now(), latency: null, status: 'new', kind: 'unknown', name: '', host: '', port: '', user: '', password: '', secret: '', params: {}, country: '', city: '', countryFlag: '🌐', risk: 'high', riskScore: 0, riskReasons: [] };
       }
 
       function isIpHost(host) {
         return /^(?:\d{1,3}\.){3}\d{1,3}$/.test(host || '') || (host || '').includes(':');
+      }
+
+      const countryHints = [
+        ['美国', 'United States', 'USA', 'US', '🇺🇸'], ['英国', 'United Kingdom', 'UK', '🇬🇧'],
+        ['荷兰', 'Netherlands', 'NL', '🇳🇱'], ['加拿大', 'Canada', 'CA', '🇨🇦'],
+        ['德国', 'Germany', 'DE', '🇩🇪'], ['法国', 'France', 'FR', '🇫🇷'],
+        ['西班牙', 'Spain', 'ES', '🇪🇸'], ['瑞士', 'Switzerland', 'CH', '🇨🇭'],
+        ['芬兰', 'Finland', 'FI', '🇫🇮'], ['爱尔兰', 'Ireland', 'IE', '🇮🇪'],
+        ['泰国', 'Thailand', 'TH', '🇹🇭'], ['日本', 'Japan', 'JP', '🇯🇵'],
+        ['新加坡', 'Singapore', 'SG', '🇸🇬'], ['土耳其', 'Turkey', 'TR', '🇹🇷'],
+        ['阿根廷', 'Argentina', 'AR', '🇦🇷'], ['比利时', 'Belgium', 'BE', '🇧🇪']
+      ];
+
+      function inferCountry(node) {
+        const params = node.params || {};
+        const explicit = String(params.country || params.region || params.location || '').trim();
+        const hay = [explicit, node.name, node.source].join(' ').toLowerCase();
+        for (const hint of countryHints) {
+          if (hint.slice(0, -1).some(value => hay.includes(String(value).toLowerCase()))) return {name: hint[0], flag: hint[hint.length - 1]};
+        }
+        return {name: explicit || '其他地区', flag: '🌐'};
       }
 
       function finalizeNode(node) {
@@ -339,6 +466,10 @@
         node.riskScore = score;
         node.risk = score >= 7 ? 'high' : score >= 4 ? 'medium' : 'low';
         node.riskReasons = reasons.slice(0, 4);
+        const country = inferCountry(node);
+        node.country = node.country || country.name;
+        node.countryFlag = node.countryFlag && node.countryFlag !== '🌐' ? node.countryFlag : country.flag;
+        node.city = node.city || String((node.params || {}).city || '').trim();
         return node;
       }
 
@@ -358,6 +489,8 @@
             node.secret = values.secret || '';
             node.name = url.hostname === 'proxy' ? 'Telegram MTProto' : 'Telegram SOCKS';
             node.params = values;
+            node.country = values.country || values.region || '';
+            node.city = values.city || '';
             if (!node.host || !node.port) return null;
             return finalizeNode(node);
           }
@@ -461,13 +594,16 @@
       function renderVpnHero() {
         const node = selectedGeneralNode();
         updateModeControls();
+        const setPowerLabel = (label) => { if ($('powerButtonLabel')) $('powerButtonLabel').textContent = label; };
         if (!node) {
           $('vpnDot').classList.add('off');
           $('vpnStateLabel').textContent = '未连接';
           $('vpnStatus').textContent = '准备连接';
           $('vpnSelection').textContent = '先刷新或导入一个通用 VPN 节点，再选择连接。';
+          $('selectedNodeName').textContent = '未选择节点';
+          $('selectedNodeFlag').textContent = '◎';
           $('connectBtn').disabled = true;
-          $('connectBtn').textContent = isAndroid ? '连接当前节点' : '导出配置';
+          setPowerLabel(isAndroid ? '选择节点' : '导出配置');
           return;
         }
         const active = state.vpnStatus === 'started' || state.vpnStatus === 'starting' || state.vpnStatus === 'permission';
@@ -475,14 +611,17 @@
         $('vpnStateLabel').textContent = state.vpnStatus === 'started' ? '已连接' : state.vpnStatus === 'starting' ? '连接中' : state.vpnStatus === 'permission' ? '等待授权' : node.status === 'reachable' ? '节点可达' : '待确认';
         $('vpnStatus').textContent = state.vpnStatus === 'started' ? '已连接' : state.vpnStatus === 'starting' ? '正在连接' : state.vpnStatus === 'permission' ? '等待系统授权' : (node.name || typeLabel(node.kind));
         $('vpnSelection').textContent = hostPort(node) + ' · ' + typeLabel(node.kind) + ' · ' + modeLabel() + (node.status === 'reachable' ? ' · ' + node.latency + ' ms' : '') + (state.vpnMessage ? ' · ' + state.vpnMessage : '');
+        $('selectedNodeName').textContent = node.name || hostPort(node);
+        $('selectedNodeFlag').textContent = node.countryFlag || (isTelegram(node) ? '✦' : '◎');
         $('connectBtn').disabled = state.vpnStatus === 'stopping';
-        $('connectBtn').textContent = isAndroid ? (active ? '断开连接' : '连接当前节点') : '导出配置';
+        setPowerLabel(isAndroid ? (active ? '断开连接' : '连接') : '导出配置');
       }
 
       function setPage(page) {
         state.page = page === 'telegram' ? 'telegram' : 'vpn';
         state.selectedId = null;
         const telegram = state.page === 'telegram';
+        document.body.classList.toggle('telegram-page', telegram);
         document.querySelectorAll('[data-tab]').forEach(item => item.classList.toggle('active', item.dataset.tab === state.page));
         $('pageTitle').textContent = telegram ? 'Telegram 代理' : 'VPN 服务';
         $('pageSubtitle').textContent = telegram
@@ -542,15 +681,32 @@
         $('nodeCountBadge').textContent = list.length + (state.page === 'telegram' ? ' 个代理' : ' 个节点');
         const box = $('nodeList');
         if (!list.length) { box.innerHTML = '<div class="empty">没有匹配节点。你可以添加来源或粘贴链接。</div>'; return; }
-        box.innerHTML = list.map(node => {
-          const selected = node.id === state.selectedId ? ' selected' : '';
-          const mark = isTelegram(node) ? 'TG' : typeLabel(node.kind).slice(0, 3);
-          return '<div class="node' + selected + '" data-node-id="' + esc(node.id) + '">' +
-            '<div class="node-mark">' + esc(mark) + '</div>' +
-            '<div class="node-main"><div class="node-title"><strong>' + esc(node.name || hostPort(node)) + '</strong><small>' + esc(typeLabel(node.kind)) + '</small>' + riskBadge(node) + '</div><div class="node-meta">' + esc(hostPort(node)) + ' · ' + esc(node.source) + '</div></div>' +
-            '<div class="node-side">' + latencyView(node) + '<div class="node-meta">' + esc(node.status === 'reachable' ? '端口可达' : (isTelegram(node) ? 'Telegram 专用' : '等待检测')) + '</div></div>' +
-            '</div>';
-        }).join('');
+        if (state.page === 'telegram') {
+          const groups = new Map();
+          for (const node of list) {
+            const key = node.country || '其他地区';
+            if (!groups.has(key)) groups.set(key, {name: key, flag: node.countryFlag || '🌐', nodes: []});
+            groups.get(key).nodes.push(node);
+          }
+          box.innerHTML = [...groups.values()].sort((a, b) => a.name.localeCompare(b.name)).map(group => {
+            const open = state.openCountries?.[group.name] !== false;
+            return '<div class="country-group"><button class="country-header" type="button" data-country-toggle="' + esc(group.name) + '">' +
+              '<span class="country-flag">' + esc(group.flag) + '</span><span class="country-copy"><strong>' + esc(group.name) + '</strong><small>' + group.nodes.length + ' 个节点</small></span><span class="country-chevron">' + (open ? '⌄' : '›') + '</span></button>' +
+              '<div class="country-items' + (open ? '' : ' page-hidden') + '">' + group.nodes.map(renderNodeRow).join('') + '</div></div>';
+          }).join('');
+          return;
+        }
+        box.innerHTML = list.map(renderNodeRow).join('');
+      }
+
+      function renderNodeRow(node) {
+        const selected = node.id === state.selectedId ? ' selected' : '';
+        const mark = isTelegram(node) ? 'TG' : typeLabel(node.kind).slice(0, 3);
+        return '<div class="node' + selected + '" data-node-id="' + esc(node.id) + '">' +
+          '<div class="node-mark">' + esc(mark) + '</div>' +
+          '<div class="node-main"><div class="node-title"><strong>' + esc(node.name || hostPort(node)) + '</strong><small>' + esc(typeLabel(node.kind)) + '</small>' + riskBadge(node) + '</div><div class="node-meta">' + esc(hostPort(node)) + ' · ' + esc(node.source) + '</div></div>' +
+          '<div class="node-side">' + latencyView(node) + '<div class="node-meta">' + esc(node.status === 'reachable' ? '端口可达' : (isTelegram(node) ? 'Telegram 专用' : '等待检测')) + '</div></div>' +
+          '</div>';
       }
 
       function renderDetail() {
@@ -828,6 +984,7 @@
       function wire() {
         $('addSourceBtn').onclick = addSource; $('refreshBtn').onclick = refreshAll; $('discoverBtn').onclick = discoverPublic; $('testBtn').onclick = testAll; $('pasteBtn').onclick = openImport; $('clearBtn').onclick = () => { if (confirm('清空本地节点清单？')) clearNodes(); }; $('demoBtn').onclick = loadDemo;
         $('connectBtn').onclick = connectSelected; $('heroRefreshBtn').onclick = refreshAll; $('heroTestBtn').onclick = testAll;
+        $('selectedNodeCard').onclick = () => { setPage('vpn'); $('nodeList').scrollIntoView({behavior:'smooth', block:'start'}); };
         $('modeSmartBtn').onclick = () => { state.mode = 'smart'; persist(); render(); };
         $('modeGlobalBtn').onclick = () => { state.mode = 'global'; persist(); render(); };
         $('searchInput').oninput = renderNodes; $('typeFilter').onchange = renderNodes; $('riskFilter').onchange = renderNodes; $('sortSelect').onchange = renderNodes;
@@ -839,7 +996,11 @@
           if (tab === 'export') { setPage('vpn'); openImport(); }
         });
         $('sourceList').onclick = event => { const refresh = event.target.closest('[data-refresh-source]'); const remove = event.target.closest('[data-delete-source]'); const open = event.target.closest('[data-open-source]'); if (refresh) refreshSource(state.sources.find(item => item.id === refresh.dataset.refreshSource)); if (remove) deleteSource(remove.dataset.deleteSource); if (open) openSingBoxSource(state.sources.find(item => item.id === open.dataset.openSource)); };
-        $('nodeList').onclick = event => { const row = event.target.closest('[data-node-id]'); if (!row) return; state.selectedId = row.dataset.nodeId; render(); };
+        $('nodeList').onclick = event => {
+          const toggle = event.target.closest('[data-country-toggle]');
+          if (toggle) { state.openCountries[toggle.dataset.countryToggle] = state.openCountries[toggle.dataset.countryToggle] === false; renderNodes(); return; }
+          const row = event.target.closest('[data-node-id]'); if (!row) return; state.selectedId = row.dataset.nodeId; render();
+        };
       }
 
       loadState(); wire();
