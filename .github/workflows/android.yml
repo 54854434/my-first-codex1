@@ -2,7 +2,6 @@ name: Android APK
 on:
   push:
     branches: [main, 'codex/**']
-  pull_request:
   workflow_dispatch:
 permissions:
   contents: read
@@ -22,6 +21,9 @@ jobs:
           distribution: temurin
           java-version: '17'
       - uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+          log-accepted-android-sdk-licenses: false
       - name: Install native build prerequisites
         run: |
           sudo apt-get update
@@ -36,7 +38,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: aurora-free-vpn-debug
-          path: upstream/main/build/outputs/apk/uiOvpn2/debug/*.apk
+          path: upstream/main/build/outputs/apk/**/*.apk
           if-no-files-found: error
           retention-days: 14
       - uses: actions/upload-artifact@v4
