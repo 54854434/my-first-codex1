@@ -153,7 +153,7 @@
 
     <main>
       <div class="topbar">
-        <div><h1 id="pageTitle">VPN 服务</h1><p class="subtitle" id="pageSubtitle">选择节点后，在智能模式和全局模式之间切换；Android 版会把配置交给系统 VPN 服务确认。</p></div>
+        <div><h1 id="pageTitle">VPN 服务</h1><p class="subtitle" id="pageSubtitle">节点选择、风险提示和连接控制都在当前页面完成；首次连接仍需一次系统 VPN 授权。</p></div>
         <div class="status"><span class="dot" id="platformDot"></span><span id="platformStatus">浏览器模式</span></div>
       </div>
 
@@ -174,7 +174,7 @@
           <p class="mode-hint" id="modeHint">智能模式：内网/本地地址直连，其余流量通过所选节点。</p>
         </div>
         <div class="hero-actions">
-          <button class="btn primary" id="connectBtn">导入并连接</button>
+          <button class="btn primary" id="connectBtn">连接当前节点</button>
           <button class="btn" id="heroRefreshBtn">刷新节点</button>
           <button class="btn" id="heroTestBtn">测速</button>
         </div>
@@ -225,7 +225,7 @@
         </aside>
       </section>
 
-      <div class="notice" style="margin-top:16px"><b>风险边界：</b>“自动发现”只抓取公开 HTTPS 文本目录并在本地解析、去重和测试端口；公开节点不代表安全、合法或高速。高风险节点默认只允许查看/复制，导入内置 VPN 前请确认来源并避免登录敏感账户。</div>
+      <div class="notice" style="margin-top:16px"><b>风险边界：</b>“自动发现”只抓取公开 HTTPS 文本目录并在本地解析、去重和测试端口；公开节点不代表安全、合法或高速。高风险节点仍可由你主动连接，但每次会明确提示风险，请避免在未知代理上登录敏感账户。</div>
     </main>
   </div>
 
@@ -247,7 +247,7 @@
 
       const $ = (id) => document.getElementById(id);
       const isAndroid = !!window.Android && typeof window.Android.getPlatform === 'function';
-      const state = { sources: [], nodes: [], selectedId: null, pending: new Map(), testRun: 0, page: 'vpn', mode: 'smart' };
+      const state = { sources: [], nodes: [], selectedId: null, pending: new Map(), testRun: 0, page: 'vpn', mode: 'smart', vpnStatus: 'stopped', vpnMessage: '' };
       const MAX_IMPORTED_NODES = 600;
       const publicSources = [
         {name: '公开目录 · SoliSpirit Telegram MTProto', url: 'https://raw.githubusercontent.com/SoliSpirit/mtproto/master/all_proxies.txt'},
@@ -467,15 +467,16 @@
           $('vpnStatus').textContent = '准备连接';
           $('vpnSelection').textContent = '先刷新或导入一个通用 VPN 节点，再选择连接。';
           $('connectBtn').disabled = true;
-          $('connectBtn').textContent = isAndroid ? '导入并连接' : '导出配置';
+          $('connectBtn').textContent = isAndroid ? '连接当前节点' : '导出配置';
           return;
         }
-        $('vpnDot').classList.toggle('off', node.status !== 'reachable');
-        $('vpnStateLabel').textContent = node.status === 'reachable' ? '节点可达' : '待确认';
-        $('vpnStatus').textContent = node.name || typeLabel(node.kind);
-        $('vpnSelection').textContent = hostPort(node) + ' · ' + typeLabel(node.kind) + ' · ' + modeLabel() + (node.status === 'reachable' ? ' · ' + node.latency + ' ms' : '');
-        $('connectBtn').disabled = false;
-        $('connectBtn').textContent = isAndroid ? '导入并连接' : '导出配置';
+        const active = state.vpnStatus === 'started' || state.vpnStatus === 'starting' || state.vpnStatus === 'permission';
+        $('vpnDot').classList.toggle('off', state.vpnStatus !== 'started');
+        $('vpnStateLabel').textContent = state.vpnStatus === 'started' ? '已连接' : state.vpnStatus === 'starting' ? '连接中' : state.vpnStatus === 'permission' ? '等待授权' : node.status === 'reachable' ? '节点可达' : '待确认';
+        $('vpnStatus').textContent = state.vpnStatus === 'started' ? '已连接' : state.vpnStatus === 'starting' ? '正在连接' : state.vpnStatus === 'permission' ? '等待系统授权' : (node.name || typeLabel(node.kind));
+        $('vpnSelection').textContent = hostPort(node) + ' · ' + typeLabel(node.kind) + ' · ' + modeLabel() + (node.status === 'reachable' ? ' · ' + node.latency + ' ms' : '') + (state.vpnMessage ? ' · ' + state.vpnMessage : '');
+        $('connectBtn').disabled = state.vpnStatus === 'stopping';
+        $('connectBtn').textContent = isAndroid ? (active ? '断开连接' : '连接当前节点') : '导出配置';
       }
 
       function setPage(page) {
@@ -486,7 +487,7 @@
         $('pageTitle').textContent = telegram ? 'Telegram 代理' : 'VPN 服务';
         $('pageSubtitle').textContent = telegram
           ? '从公开目录和你添加的来源中筛选 Telegram 专用代理，查看风险后可直接跳转到 Telegram。'
-          : '选择节点后，在智能模式和全局模式之间切换；Android 版会把配置交给系统 VPN 服务确认。';
+          : '节点选择、风险提示和连接控制都在当前页面完成；首次连接仍需一次系统 VPN 授权。';
         $('vpnHero').classList.toggle('page-hidden', telegram);
         $('sourcesCard').classList.toggle('page-hidden', telegram);
         $('telegramNotice').classList.toggle('page-hidden', !telegram);
@@ -559,7 +560,7 @@
         $('detailContent').className = 'detail-main';
         const tg = isTelegram(node);
         const config = tg ? null : singBoxConfig(node);
-        const importButton = !tg && isAndroid && Android.importLocalConfig && config ? '<button class="btn primary" id="importNodeBtn">导入内置 VPN</button>' : '';
+        const importButton = !tg && isAndroid && Android.startVpn && config ? '<button class="btn primary" id="importNodeBtn">在当前页面连接</button>' : '';
         const exportButton = !tg && config ? '<button class="btn" id="exportNodeBtn">导出 sing-box 配置</button>' : '';
         const reasons = (node.riskReasons || []).map(reason => '<li>' + esc(reason) + '</li>').join('');
         $('detailContent').innerHTML = '<div class="detail-title"><div><h3>' + esc(node.name || typeLabel(node.kind)) + '</h3><p>' + esc(hostPort(node)) + '</p></div>' + latencyView(node) + '</div>' +
@@ -715,9 +716,13 @@
       function importSingBox(node) {
         const config = singBoxConfig(node);
         if (!config) { toast('此协议暂不生成 sing-box 配置，请导出原始链接'); return; }
-        if (isAndroid && Android.importLocalConfig) {
-          Android.importLocalConfig(node.name || node.kind, JSON.stringify(config, null, 2));
-          toast((node.risk === 'high' ? '高风险节点已交给内置 VPN 导入，请确认后再启动' : '配置已交给内置 VPN 导入，请确认后启动') + ' · ' + modeLabel());
+        if (isAndroid && Android.startVpn) {
+          if (node.risk === 'high' && !confirm('此节点被标记为高风险，可能记录或篡改流量。仍要在当前页面连接吗？')) return;
+          state.selectedId = node.id;
+          state.vpnMessage = '';
+          render();
+          Android.startVpn(node.name || node.kind, JSON.stringify(config));
+          toast('已在当前页面请求连接 · ' + modeLabel());
           return;
         }
         downloadSingBox(node);
@@ -739,6 +744,14 @@
 
       window.__nativeFetchResult = (id, ok, value, error) => { const item = state.pending.get(id); if (!item) return; state.pending.delete(id); ok ? item.resolve(value) : item.reject(new Error(error || '抓取失败')); };
       window.__nativeTcpResult = (id, ok, value, error) => { const item = state.pending.get(id); if (!item) return; state.pending.delete(id); ok ? item.resolve(Number(value)) : item.reject(new Error(error || '不可达')); };
+      window.__nativeVpnResult = (status, message) => {
+        state.vpnStatus = status || 'stopped';
+        state.vpnMessage = message || '';
+        render();
+        if (status === 'error') toast('VPN 启动失败：' + (message || '未知错误'));
+        else if (status === 'started') toast('VPN 已连接');
+        else if (status === 'stopped') toast(message || 'VPN 已断开');
+      };
 
       async function refreshSource(source) {
         source.loading = true; renderSources();
@@ -783,6 +796,10 @@
       }
 
       function connectSelected() {
+        if (isAndroid && ['started', 'starting', 'permission'].includes(state.vpnStatus)) {
+          Android.stopVpn();
+          return;
+        }
         const node = selectedGeneralNode();
         if (!node) { toast('还没有通用 VPN 节点，请先刷新或导入节点'); return; }
         state.selectedId = node.id;
