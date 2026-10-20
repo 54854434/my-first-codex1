@@ -163,7 +163,7 @@ public final class MainActivity extends Activity implements VpnStatus.StateListe
             LinearLayout content=new LinearLayout(this);content.setOrientation(LinearLayout.VERTICAL);row.addView(content,new LinearLayout.LayoutParams(0,-2,1));
             content.addView(text(n.country+(n==selected?"  ✓":""),17,INK));
             content.addView(text(n.ip+":"+n.port+" · TCP · "+n.source,12,0xff718099));
-            content.addView(text((n.latencyMs>0?n.latencyMs+" ms · 端口可达":n.latencyMs==-1?"候选线路 · 尚未检测":"端口检测未通过，可手动尝试")+"  /  标称 "+String.format(Locale.ROOT,"%.0f",n.advertisedBps/1000000.0)+" Mbps",11,n.latencyMs>0?0xff207e72:0xffa95637));
+            content.addView(text((n.latencyMs>0?n.latencyMs+" ms · 端口可达":n.latencyMs==-1?"候选线路 · 尚未检测":"端口检测未通过，可手动尝试")+(n.advertisedBps>0?"  /  标称 "+String.format(Locale.ROOT,"%.0f",n.advertisedBps/1000000.0)+" Mbps":"  /  来源未提供带宽"),11,n.latencyMs>0?0xff207e72:0xffa95637));
             content.addView(text(health.note((connecting||connected)?attemptScope:networkScope(),n,System.currentTimeMillis()),11,0xff596d93));
             content.addView(text("公共节点 · 日志风险 · "+clock(n.checkedAt),10,0xffa46735));
             TextView star=text(favorites.contains(n.ip)?"★":"☆",24,0xffc39b43);row.addView(star);
@@ -351,7 +351,7 @@ public final class MainActivity extends Activity implements VpnStatus.StateListe
     }
     private void verifyTunnel(){
         verifying=true;connected=false;connecting=true;verifyDeadline=SystemClock.elapsedRealtime()+22000;
-        status="隧道已建立，正在验证 HTTPS";record(status);int token=window.generation;
+        status="隧道已建立，正在连续验证 HTTPS";record(status);int token=window.generation;
         TunnelCheck.Session session=new TunnelCheck.Session();verificationSession=session;long verifyStart=SystemClock.elapsedRealtime();
         try{verificationFuture=verification.submit(()->{
             try{TunnelCheck.Proof proof=TunnelCheck.request(this,true,session);main.post(()->{

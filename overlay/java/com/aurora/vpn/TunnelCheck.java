@@ -22,6 +22,13 @@ public final class TunnelCheck {
     }
     public static Proof request(Context context,boolean requireVpn)throws IOException {return request(context,requireVpn,new Session());}
     public static Proof request(Context context,boolean requireVpn,Session session)throws IOException {
+        Proof first=probe(context,requireVpn,session,false);
+        if(!requireVpn)return first;
+        session.check();SystemClock.sleep(400);session.check();
+        Proof second=probe(context,true,session,true);
+        return new Proof(second.ip,first.bytes+second.bytes);
+    }
+    private static Proof probe(Context context,boolean requireVpn,Session session,boolean alternate)throws IOException {
         session.check();
         ConnectivityManager cm=(ConnectivityManager)context.getSystemService(Context.CONNECTIVITY_SERVICE);
         Network network=null;NetworkCapabilities caps=null;
@@ -34,12 +41,12 @@ public final class TunnelCheck {
         if(network==null||caps==null||caps.hasTransport(NetworkCapabilities.TRANSPORT_VPN)!=requireVpn)
             throw new IOException(requireVpn?"Android 尚未提供 VPN 网络":"基线网络不是直连");
         IOException last=null;
-        for(String endpoint:new String[]{"https://api.ipify.org","https://www.cloudflare.com/cdn-cgi/trace"}){
+        for(String endpoint:alternate?new String[]{"https://www.cloudflare.com/cdn-cgi/trace","https://api.ipify.org"}:new String[]{"https://api.ipify.org","https://www.cloudflare.com/cdn-cgi/trace"}){
             session.check();HttpURLConnection connection=null;
             try{
                 connection=(HttpURLConnection)network.openConnection(new URL(endpoint));
                 session.attach(connection);connection.setConnectTimeout(4000);connection.setReadTimeout(4000);connection.setUseCaches(false);
-                connection.setInstanceFollowRedirects(false);
+                connection.setInstanceFollowRedirects(false);connection.setRequestProperty("Connection","close");
                 if(connection.getResponseCode()!=200)throw new IOException("HTTPS HTTP "+connection.getResponseCode());
                 ByteArrayOutputStream body=new ByteArrayOutputStream();
                 try(InputStream input=connection.getInputStream()){
