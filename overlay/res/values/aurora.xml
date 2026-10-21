@@ -1,0 +1,9 @@
+<resources>
+    <style name="AuroraTheme" parent="android:style/Theme.Material.Light.NoActionBar">
+        <item name="android:fontFamily">sans</item>
+        <item name="android:colorAccent">#34B8B4</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowActionModeOverlay">true</item>
+        <item name="android:windowBackground">#182653</item>
+    </style>
+</resources>

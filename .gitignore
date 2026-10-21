@@ -1,0 +1,9 @@
+/.checks/
+**/build/
+**/.gradle/
+**/.cxx/
+local.properties
+*.jks
+*.keystore
+__pycache__/
+/overlay/assets/gate-seed.csv
