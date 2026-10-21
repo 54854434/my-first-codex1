@@ -17,7 +17,7 @@ public final class NodeHealth {
         return node.cloudFresh(now)?1:verified(scope,node,now)?2:4;
     }
     private double speedValue(String scope,Node node,long now){return measured(scope,node,now)?entries.get(key(scope,node)).mbps:node.cloudFresh(now)?node.cloudMbps:0;}
-    public void failure(String scope,Node node,long now){Entry e=entry(scope,node);e.failure=now;e.failures=Math.min(5,e.failures+1);prune(now);}
+    public void failure(String scope,Node node,long now){Entry e=entry(scope,node);e.failure=now;e.failures=Math.min(5,e.failures+1);e.speedAt=0;e.mbps=0;prune(now);}
     public long cooldown(String scope,Node node,long now){
         Entry e=entries.get(key(scope,node));if(e==null||e.failure<=e.success||e.failure>now)return 0;
         return Math.max(0,e.failure+Math.min(900000L,60000L*(1L<<Math.max(0,e.failures-1)))-now);

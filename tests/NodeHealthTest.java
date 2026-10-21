@@ -25,6 +25,8 @@ public final class NodeHealthTest {
         h.speed("wifi",a,now+80000,20);
         NodeHealth saved=NodeHealth.decode(h.encode(now+80000),now+80000);
         check(saved.select(Arrays.asList(b,a),"wifi",now+80000,2).get(0)==a,"Measured local speed must persist and outrank remote evidence");
+        saved.failure("wifi",a,now+80001);
+        check(saved.select(Arrays.asList(a,b),"wifi",now+140002,2).get(0)==b,"A failed connection clears its old speed priority even after cooldown");
         System.out.println("Node evidence, network separation, cooldown and persistence checks passed");
     }
 }
