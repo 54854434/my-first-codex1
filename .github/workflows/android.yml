@@ -3,6 +3,11 @@ on:
   push:
     branches: [main, 'codex/**']
   workflow_dispatch:
+    inputs:
+      run_device_test:
+        description: 'Optional Android emulator installation and connection test'
+        type: boolean
+        default: false
 permissions:
   contents: read
 concurrency:
@@ -37,15 +42,17 @@ jobs:
       - name: Bundle a fresh dated public node snapshot
         run: java -cp .checks com.aurora.vpn.GateSeedBuilder overlay/assets/gate-seed.csv
       - name: Test real public OpenVPN handshakes from CI (no routes)
+        if: github.event_name == 'workflow_dispatch' && inputs.run_device_test
         run: python3 scripts/check_handshakes.py
       - uses: actions/upload-artifact@v4
+        if: github.event_name == 'workflow_dispatch' && inputs.run_device_test
         with:
           name: public-handshake-report
           path: .checks/handshakes/report.json
       - name: Apply Aurora UI to pinned engine
         run: python3 scripts/prepare.py
       - name: Build integrated APK
-        run: bash upstream/gradlew -p upstream :main:compileUiOvpn2DebugJavaWithJavac :main:assembleUiOvpn2Debug :main:assembleUiOvpn2DebugAndroidTest --stacktrace
+        run: bash upstream/gradlew -p upstream :main:compileUiOvpn2DebugJavaWithJavac :main:assembleUiOvpn2Debug --stacktrace
       - name: Verify snapshot inside the final APK
         run: |
           python3 - <<'PY'
@@ -65,9 +72,14 @@ jobs:
           name: build-reports
           path: upstream/main/build/reports/
           if-no-files-found: ignore
+      - name: Build optional instrumentation package
+        if: github.event_name == 'workflow_dispatch' && inputs.run_device_test
+        run: bash upstream/gradlew -p upstream :main:assembleUiOvpn2DebugAndroidTest --stacktrace
       - name: Enable KVM for actual Android runtime test
+        if: github.event_name == 'workflow_dispatch' && inputs.run_device_test
         run: sudo chmod 666 /dev/kvm
       - name: Install APK and test real VPN egress on Android
+        if: github.event_name == 'workflow_dispatch' && inputs.run_device_test
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 35
@@ -79,7 +91,7 @@ jobs:
           disable-animations: true
           script: bash scripts/android_connection_test.sh
       - uses: actions/upload-artifact@v4
-        if: always()
+        if: always() && github.event_name == 'workflow_dispatch' && inputs.run_device_test
         with:
           name: android-actual-connection-proof
           path: .checks/android-proof/
@@ -90,3 +102,4 @@ jobs:
           path: upstream/main/build/outputs/apk/uiOvpn2/debug/*.apk
           if-no-files-found: error
           retention-days: 14
+
