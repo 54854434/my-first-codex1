@@ -46,8 +46,8 @@ class OverlayTests(unittest.TestCase):
             self.assertEqual(properties.count("org.gradle.jvmargs="), 1)
             self.assertIn("-Xmx4g", properties)
             self.assertEqual((up / "main/src/main/assets/gate-seed.csv").read_text(), "dated public snapshot fixture")
-            self.assertIn('versionName = "0.6.0-alpha"', build)
-            self.assertIn('versionCode = 224', build)
+            self.assertIn('versionName = "0.7.0-alpha"', build)
+            self.assertIn('versionCode = 225', build)
             self.assertIn('baseline = file("lint-baseline.xml")', build)
             main_app = ET.parse(up / "main/src/main/AndroidManifest.xml").getroot().find("application")
             self.assertEqual(main_app.get(a+"allowBackup"), "false")
@@ -63,4 +63,5 @@ class OverlayTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
 

@@ -19,6 +19,13 @@ public final class NodeHealthTest {
         List<Node> mixed=new ArrayList<>();for(int i=1;i<=8;i++){Node g=n("9.0.0."+i,"JP",300);mixed.add(g);Node book=new Node("8.0.0."+i,"US","US",443,0,"fixture","VPNBook");book.latencyMs=1;mixed.add(book);}
         List<Node> selected=new NodeHealth().select(mixed,"wifi",now,6);
         check(selected.stream().filter(x->x.source.equals("VPNBook")).count()==3,"Unverified candidates must not be monopolized by one provider");
+        h.success("wifi",a,now+80000,500);h.speed("wifi",a,now+80000,.1);
+        b.cloudCheckedAt=now+80000;b.cloudMbps=10;b.cloudConnectMs=3000;
+        check(h.select(Arrays.asList(a,b),"wifi",now+80000,2).get(0)==b,"Known slow node must not outrank fresh cloud throughput evidence");
+        h.speed("wifi",a,now+80000,20);
+        NodeHealth saved=NodeHealth.decode(h.encode(now+80000),now+80000);
+        check(saved.select(Arrays.asList(b,a),"wifi",now+80000,2).get(0)==a,"Measured local speed must persist and outrank remote evidence");
         System.out.println("Node evidence, network separation, cooldown and persistence checks passed");
     }
 }
+

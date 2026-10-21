@@ -169,6 +169,7 @@ public final class MainActivity extends Activity implements VpnStatus.StateListe
             content.addView(text(n.country+(n==selected?"  ✓":""),17,INK));
             content.addView(text(n.ip+":"+n.port+" · TCP · "+n.source,12,0xff718099));
             content.addView(text(probeStatus(n,currentProbeKey)+(n.advertisedBps>0?"  /  标称 "+String.format(Locale.ROOT,"%.0f",n.advertisedBps/1000000.0)+" Mbps":"  /  来源未提供带宽"),11,0xff596d93));
+            content.addView(text(n.cloudNote(System.currentTimeMillis()),11,0xff596d93));
             content.addView(text(health.note((connecting||connected)?attemptScope:networkScope(),n,System.currentTimeMillis()),11,0xff596d93));
             content.addView(text("公共节点 · 日志风险 · "+clock(n.checkedAt),10,0xffa46735));
             TextView star=text(favorites.contains(n.ip)?"★":"☆",24,0xffc39b43);row.addView(star);
@@ -253,7 +254,7 @@ public final class MainActivity extends Activity implements VpnStatus.StateListe
         getPreferences(0).edit().putString("last_diagnostics",String.join("\n",diagnostics)).apply();
     }
     private void showDiagnostics(){
-        String report="极光 0.6 · OpenVPN TCP\n"+feedNote+"\n"+
+        String report="极光 0.7 · OpenVPN TCP\n"+feedNote+"\n"+
             (diagnostics.isEmpty()?getPreferences(0).getString("last_diagnostics","尚无连接记录"):String.join("\n",diagnostics));
         new AlertDialog.Builder(this).setTitle("连接诊断（无密钥）").setMessage(report)
             .setPositiveButton("关闭",null).setNeutralButton("复制",(d,w)->{
@@ -435,8 +436,9 @@ public final class MainActivity extends Activity implements VpnStatus.StateListe
     private void speedTest(){
         if(!connected){toast("请先连接 VPN");return;}if(busy){toast("已有任务进行中");return;}
         busy=true;speedResult="正在检测隧道内实际下载速度…";render();
+        Node speedNode=selected;String speedScope=attemptScope;int speedGeneration=window.generation;
         worker.execute(()->{
-            String result;
+            String result;double measuredMbps=0;
             try {
                 ConnectivityManager cm=(ConnectivityManager)getSystemService(CONNECTIVITY_SERVICE);
                 Network network=cm.getActiveNetwork();NetworkCapabilities caps=cm.getNetworkCapabilities(network);
@@ -453,16 +455,20 @@ public final class MainActivity extends Activity implements VpnStatus.StateListe
                         }
                     }
                     if(total<32768)throw new IOException("Insufficient data");
-                    result=String.format(Locale.ROOT,"本次下载 %.2f Mbps · %.0f KB（含建连耗时）",total*8.0/((System.nanoTime()-start)/1e9)/1e6,total/1024.0);
+                    measuredMbps=total*8.0/((System.nanoTime()-start)/1e9)/1e6;
+                result=String.format(Locale.ROOT,"本次下载 %.2f Mbps · %.0f KB（含建连耗时）",total*8.0/((System.nanoTime()-start)/1e9)/1e6,total/1024.0);
                 }finally{c.disconnect();}
             }catch(Exception e){result="测速失败：未确认 VPN 网络或测试服务不可达";}
-            String finalResult=result;main.post(()->{if(destroyed)return;busy=false;speedResult=connected?finalResult:"连接已断开，测速结果作废";render();});
+            String finalResult=result;double finalMbps=measuredMbps;main.post(()->{if(destroyed)return;busy=false;
+                boolean same=connected&&selected==speedNode&&window.active(speedGeneration);
+                if(same&&finalMbps>0){health.speed(speedScope,speedNode,System.currentTimeMillis(),finalMbps);saveHealth();record("保存本机下载采样："+String.format(Locale.ROOT,"%.2f Mbps",finalMbps));}
+                speedResult=same?finalResult:"连接已断开，测速结果作废";render();});
         });
     }
     private String clock(long t){return t==0?"未检测":new SimpleDateFormat("HH:mm:ss",Locale.getDefault()).format(new Date(t));}
     private void toast(String s){if(!destroyed)Toast.makeText(this,s,Toast.LENGTH_LONG).show();}
-    private void about(){new AlertDialog.Builder(this).setTitle("极光 · 免费线路版 0.6")
-        .setMessage("同一 APK 内集成 OpenVPN for Android 内核，无需手填 API 或节点配置。\n\n公开源：VPN Gate（含同源备用镜像）、VPNBook\n标称带宽来自源站，不保证实际速度。延迟仅是端口连接耗时。自动优选最多尝试 6 条不同线路，每条连接上限 25 秒，停止等待上限 8 秒。停止未确认时结束自动连接，提示在系统 VPN 设置断开；自动换线仅在此页面存活时运行。\n\n公共节点可能记录连接与流量，不提供匿名保证。隧道断开时系统可能恢复直连。可在 Android VPN 设置中按需启用始终开启和阻止无 VPN 连接。\n\n测试流量发往 Cloudflare，约 1 MB。无账号、支付、广告或自建后台。节点源被阻断时，无法保证首次获取成功。\n\n内核许可证与源代码见本项目 README。")
+    private void about(){new AlertDialog.Builder(this).setTitle("极光 · 免费线路版 0.7")
+        .setMessage("同一 APK 内集成 OpenVPN for Android 内核，无需手填 API 或节点配置。\n\n公开源：外置实连筛选列表（优先）；VPN Gate（含同源备用镜像）、VPNBook（回退）\n云端采样不是手机速度；本机测速保存于本机并参与下一次优选。标称带宽来自源站，不保证实际速度。延迟仅是端口连接耗时。自动优选最多尝试 6 条不同线路，每条连接上限 25 秒，停止等待上限 8 秒。停止未确认时结束自动连接，提示在系统 VPN 设置断开；自动换线仅在此页面存活时运行。\n\n公共节点可能记录连接与流量，不提供匿名保证。隧道断开时系统可能恢复直连。可在 Android VPN 设置中按需启用始终开启和阻止无 VPN 连接。\n\n测试流量发往 Cloudflare，约 1 MB。无账号、支付、广告或自建后台。节点源被阻断时，无法保证首次获取成功。\n\n内核许可证与源代码见本项目 README。")
         .setPositiveButton("知道了",null).setNeutralButton("内核诊断",(d,w)->startActivity(new Intent(this,de.blinkt.openvpn.activities.MainActivity.class))).show();}
     @Override protected void onSaveInstanceState(Bundle s){super.onSaveInstanceState(s);s.putString("page",page);}
     @Override protected void onDestroy(){destroyed=true;auto=false;preflightGeneration++;if(preflightFuture!=null)preflightFuture.cancel(true);main.removeCallbacksAndMessages(null);cancelVerification();worker.shutdownNow();control.shutdownNow();verification.shutdownNow();VpnStatus.removeLogListener(this);VpnStatus.removeStateListener(this);VpnStatus.removeByteCountListener(this);if(bound)unbindService(engineConnection);super.onDestroy();}
@@ -478,4 +484,5 @@ public final class MainActivity extends Activity implements VpnStatus.StateListe
         }
     }
 }
+
 

@@ -15,7 +15,7 @@ public final class Discovery {
     public static String readUrl(String url,int maxBytes)throws IOException{
         HttpURLConnection c=(HttpURLConnection)new URL(url).openConnection();
         c.setConnectTimeout(4000);c.setReadTimeout(5000);c.setInstanceFollowRedirects(false);
-        c.setRequestProperty("User-Agent","AuroraFreeVPN/0.5 public source client");long deadline=System.nanoTime()+12000000000L;
+        c.setRequestProperty("User-Agent","AuroraFreeVPN/0.7 public source client");long deadline=System.nanoTime()+12000000000L;
         try{
             if(c.getResponseCode()!=200)throw new IOException("Source HTTP "+c.getResponseCode());
             try(InputStream in=c.getInputStream();ByteArrayOutputStream out=new ByteArrayOutputStream()){
@@ -35,12 +35,19 @@ public final class Discovery {
         }throw last==null?new IOException("VPN Gate sources unavailable"):last;
     }
     static String encodeNodes(List<Node> nodes){
-        StringBuilder csv=new StringBuilder("*vpn_servers\n#HostName,IP,CountryLong,CountryShort,Speed,OpenVPN_ConfigData_Base64,AuroraSource\n");Set<String> seen=new HashSet<>();
+        StringBuilder csv=new StringBuilder("*vpn_servers\n#HostName,IP,CountryLong,CountryShort,Speed,OpenVPN_ConfigData_Base64,AuroraSource,AuroraCheckedAt,AuroraMbps,AuroraConnectMs\n");Set<String> seen=new HashSet<>();
         for(Node n:nodes)if(seen.add(n.ip+":"+n.port))csv.append("public,").append(n.ip).append(',').append('"').append(n.country.replace("\"","\"\"")).append('"').append(',').append(n.code).append(',').append(n.advertisedBps).append(',')
-            .append(Base64.getEncoder().encodeToString(n.config.getBytes(StandardCharsets.UTF_8))).append(',').append(n.source).append('\n');
+            .append(Base64.getEncoder().encodeToString(n.config.getBytes(StandardCharsets.UTF_8))).append(',').append(n.source).append(',').append(n.cloudCheckedAt).append(',').append(n.cloudMbps).append(',').append(n.cloudConnectMs).append('\n');
         return csv.toString();
     }
     public static String download()throws IOException{
+        try{
+            FeedSnapshot feed=CloudFeed.download();
+            lastReport="外置采集与实连筛选 · 云端通过 "+feed.nodes.stream().filter(n->n.cloudFresh(System.currentTimeMillis())).count()+" 条";
+            return encodeNodes(feed.nodes);
+        }catch(Exception unavailable){return downloadDirect();}
+    }
+    public static String downloadDirect()throws IOException{
         ExecutorService pool=Executors.newFixedThreadPool(2);List<Node> all=new ArrayList<>();List<String> reports=new ArrayList<>();
         try{
             List<Callable<List<Node>>> sources=Arrays.asList(Discovery::gate,BookSource::download);
@@ -53,7 +60,10 @@ public final class Discovery {
     }
     public static List<Node> balanced(List<Node> all,int limit){
         Map<String,Queue<Node>> groups=new LinkedHashMap<>();for(Node n:all)groups.computeIfAbsent(n.source,k->new ArrayDeque<>()).add(n);
-        List<Node> selected=new ArrayList<>();boolean added=true;
+        List<Node> selected=new ArrayList<>();
+        for(Node n:all)if(n.cloudFresh(System.currentTimeMillis())&&selected.size()<limit)selected.add(n);
+        for(Queue<Node> group:groups.values())group.removeAll(selected);
+        boolean added=true;
         while(selected.size()<limit&&added){added=false;for(Queue<Node> group:groups.values())if(!group.isEmpty()&&selected.size()<limit){selected.add(group.remove());added=true;}}
         return selected;
     }
@@ -86,4 +96,5 @@ public final class Discovery {
         return candidates;
     }
 }
+
 

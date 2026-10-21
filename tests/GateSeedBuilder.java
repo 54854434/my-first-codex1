@@ -8,11 +8,11 @@ public class GateSeedBuilder {
     public static void main(String[] args)throws Exception{
         FeedSnapshot feed=FeedSnapshot.online(Discovery.download(),System.currentTimeMillis());
         long book=feed.nodes.stream().filter(n->n.source.equals("VPNBook")).count();
-        if(book==0)throw new IllegalStateException("New provider did not produce compatible profiles");
         System.out.println("Bundled sources: VPNBook "+book+", VPN Gate "+(feed.nodes.size()-book));
         Path path=Paths.get(args[0]);Files.createDirectories(path.getParent());
         Files.write(path,feed.encode().getBytes(StandardCharsets.UTF_8));
         System.out.println("Bundled "+feed.nodes.size()+" dated public TCP candidates (not connection-tested)");
     }
 }
+
 

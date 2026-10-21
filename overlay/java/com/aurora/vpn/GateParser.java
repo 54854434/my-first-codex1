@@ -90,11 +90,19 @@ public final class GateParser {
                     row.get(header.get("CountryShort")).toUpperCase(Locale.ROOT),Long.parseLong(row.get(header.get("Speed"))),raw);
                 if(header.containsKey("AuroraSource")&&row.get(header.get("AuroraSource")).equals("VPNBook"))
                     node=new Node(node.ip,node.country,node.code,node.port,node.advertisedBps,node.config,"VPNBook");
+                if(header.containsKey("AuroraCheckedAt")&&header.containsKey("AuroraMbps")&&header.containsKey("AuroraConnectMs")){
+                    long stamp=Long.parseLong(row.get(header.get("AuroraCheckedAt")));
+                    double speed=Double.parseDouble(row.get(header.get("AuroraMbps")));int ms=Integer.parseInt(row.get(header.get("AuroraConnectMs")));
+                    if(stamp>0&&stamp<=System.currentTimeMillis()&&Double.isFinite(speed)&&speed>0&&speed<100000&&ms>0&&ms<120000){node.cloudCheckedAt=stamp;node.cloudMbps=speed;node.cloudConnectMs=ms;}
+                }
                 if(seen.add(node.ip+":"+node.port))result.add(node);
             }catch(IllegalArgumentException|IndexOutOfBoundsException ignored){ /* one bad row does not poison the feed */ }
         }
         if(header.isEmpty())throw new IllegalArgumentException("Node source format changed");
-        result.sort(Comparator.comparingLong((Node n)->n.advertisedBps).reversed());return result;
+        result.sort(Comparator.comparingInt((Node n)->n.cloudFresh(System.currentTimeMillis())?0:1)
+            .thenComparing(Comparator.comparingDouble((Node n)->n.cloudFresh(System.currentTimeMillis())?n.cloudMbps:0).reversed())
+            .thenComparing(Comparator.comparingLong((Node n)->n.advertisedBps).reversed()));return result;
     }
 }
+
 

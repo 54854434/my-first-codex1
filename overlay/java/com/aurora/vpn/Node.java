@@ -9,6 +9,11 @@ public final class Node {
     public volatile int latencyMs = -1;
     public volatile long checkedAt;
     public volatile String checkedNetwork="";
+    public long cloudCheckedAt;
+    public double cloudMbps;
+    public int cloudConnectMs;
+    public boolean cloudFresh(long now){return cloudCheckedAt>0&&now>=cloudCheckedAt&&now-cloudCheckedAt<=6*3600000L&&cloudMbps>0;}
+    public String cloudNote(long now){return cloudFresh(now)?String.format(Locale.ROOT,"云端实连采样 %.2f Mbps · %d ms（非手机速度）",cloudMbps,cloudConnectMs):"云端未测或结果已过期";}
     public Node(String ip, String country, String code, int port, long bps, String config) {
         this(ip,country,code,port,bps,config,"VPN Gate");
     }
@@ -41,4 +46,5 @@ public final class Node {
             + new String(Character.toChars(0x1F1E6+code.charAt(1)-'A'));
     }
 }
+
 
