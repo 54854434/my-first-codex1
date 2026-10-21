@@ -1,0 +1,60 @@
+name: Public node feed
+on:
+  push:
+    branches: ['codex/aurora-vpn-android']
+    paths: ['service/**', '.github/workflows/public-feed.yml', 'tests/FeedExport.java']
+  schedule:
+    - cron: '17 */6 * * *'
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: aurora-public-feed
+  cancel-in-progress: false
+jobs:
+  collect:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: codex/aurora-vpn-android
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Test parser and feed boundaries
+        run: bash scripts/test.sh
+      - name: Collect additional dated public archive
+        run: python3 service/collect_extra.py
+      - name: Export allowlisted profiles and deduplicate endpoints
+        run: java -cp .checks com.aurora.vpn.FeedExport
+      - name: Prepare isolated full-tunnel checker
+        run: |
+          sudo mkdir -p /dev/net
+          if [ ! -c /dev/net/tun ]; then sudo mknod /dev/net/tun c 10 200; fi
+          docker build -t aurora-feed-probe service
+      - name: Verify real tunnel, HTTPS and bounded download
+        run: python3 service/build_feed.py
+      - name: Publish static feed without modifying application code
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const {owner, repo} = context.repo;
+            const ref = 'heads/public-feed';
+            let parent;
+            try { parent = (await github.rest.git.getRef({owner, repo, ref})).data.object.sha; }
+            catch (e) { if (e.status !== 404) throw e; }
+            const tree = await github.rest.git.createTree({owner, repo, tree: ['nodes.csv','status.json','index.html','README.md'].map(path => ({path, mode:'100644', type:'blob', content:fs.readFileSync('.checks/published/'+path,'utf8')}))});
+            const commit = await github.rest.git.createCommit({owner, repo, tree:tree.data.sha, parents:parent?[parent]:[], message:'Refresh measured public node feed'});
+            if (parent) await github.rest.git.updateRef({owner,repo,ref,sha:commit.data.sha});
+            else await github.rest.git.createRef({owner,repo,ref:'refs/'+ref,sha:commit.data.sha});
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: public-feed-evidence
+          path: |
+            .checks/published/
+            .checks/feed/probe-report.json
+          retention-days: 14
