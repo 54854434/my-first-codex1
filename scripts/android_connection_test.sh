@@ -38,3 +38,4 @@ assert report['https_bytes']>0
 assert report['persisted_priority'] and report['reconnect_attempts']==1 and report['reconnect_https_bytes']>0
 PY
 
+

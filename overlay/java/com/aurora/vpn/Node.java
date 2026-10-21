@@ -13,7 +13,7 @@ public final class Node {
     public double cloudMbps;
     public int cloudConnectMs;
     public boolean cloudFresh(long now){return cloudCheckedAt>0&&now>=cloudCheckedAt&&now-cloudCheckedAt<=6*3600000L&&cloudMbps>0;}
-    public String cloudNote(long now){return cloudFresh(now)?String.format(Locale.ROOT,"云端实连采样 %.2f Mbps · %d ms（非手机速度）",cloudMbps,cloudConnectMs):"云端未测或结果已过期";}
+    public String cloudNote(long now){return cloudFresh(now)?String.format(Locale.ROOT,"云端实连采样 %.2f Mbps · %d ms · %d 分钟前（非手机速度）",cloudMbps,cloudConnectMs,Math.max(0,(now-cloudCheckedAt)/60000)):"云端未测或结果已过期";}
     public Node(String ip, String country, String code, int port, long bps, String config) {
         this(ip,country,code,port,bps,config,"VPN Gate");
     }

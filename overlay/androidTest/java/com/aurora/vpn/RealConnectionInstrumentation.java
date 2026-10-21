@@ -38,6 +38,10 @@ public final class RealConnectionInstrumentation extends Instrumentation {
             long wait=SystemClock.elapsedRealtime()+90000;
             while((Boolean)value("busy")&&SystemClock.elapsedRealtime()<wait)SystemClock.sleep(500);
             if((Boolean)value("busy"))throw new IOException("Discovery did not finish in 90 seconds");
+            java.util.List<?> discovered=(java.util.List<?>)value("nodes");
+            long cloudCount=discovered.stream().map(n->(Node)n).filter(n->n.cloudFresh(System.currentTimeMillis())).count();
+            report.put("cloud_fresh_nodes",cloudCount);report.put("feed_origin",value("feedNote"));
+            if(cloudCount==0||!String.valueOf(value("feedNote")).contains("外置"))throw new IOException("External measured feed was not consumed by the app");
             call("connectBest");
             wait=SystemClock.elapsedRealtime()+330000;
             while(SystemClock.elapsedRealtime()<wait){
@@ -109,4 +113,5 @@ public final class RealConnectionInstrumentation extends Instrumentation {
         }
     }
 }
+
 

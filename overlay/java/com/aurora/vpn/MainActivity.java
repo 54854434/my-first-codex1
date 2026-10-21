@@ -461,6 +461,7 @@ public final class MainActivity extends Activity implements VpnStatus.StateListe
             }catch(Exception e){result="测速失败：未确认 VPN 网络或测试服务不可达";}
             String finalResult=result;double finalMbps=measuredMbps;main.post(()->{if(destroyed)return;busy=false;
                 boolean same=connected&&selected==speedNode&&window.active(speedGeneration);
+                try{same=same&&attemptNetwork!=null&&DirectNetworkProbe.capture(this).key.equals(attemptNetwork.key);}catch(IOException changed){same=false;}
                 if(same&&finalMbps>0){health.speed(speedScope,speedNode,System.currentTimeMillis(),finalMbps);saveHealth();record("保存本机下载采样："+String.format(Locale.ROOT,"%.2f Mbps",finalMbps));}
                 speedResult=same?finalResult:"连接已断开，测速结果作废";render();});
         });
