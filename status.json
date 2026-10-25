@@ -1,9 +1,9 @@
 {
-  "generated_at": 1792928528524,
+  "generated_at": 1792945893145,
   "scope": "GitHub Actions / Linux container; not phone speed",
-  "candidates": 185,
+  "candidates": 184,
   "tested": 24,
-  "passed": 19,
+  "passed": 15,
   "channels": [
     "VPN Gate + mirror",
     "VPNBook",
@@ -12,9 +12,9 @@
   "results": [
     {
       "ok": true,
-      "checked_at": 1792928467616,
-      "connect_ms": 2403,
-      "mbps": 28.592,
+      "checked_at": 1792945828359,
+      "connect_ms": 3205,
+      "mbps": 27.226,
       "sample_bytes": 524288,
       "vpn_ip": "147.135.15.16",
       "scope": "GitHub Actions / Linux container; not phone speed",
@@ -24,9 +24,9 @@
     },
     {
       "ok": true,
-      "checked_at": 1792928469435,
-      "connect_ms": 2404,
-      "mbps": 1.616,
+      "checked_at": 1792945827511,
+      "connect_ms": 3204,
+      "mbps": 10.629,
       "sample_bytes": 524288,
       "vpn_ip": "142.4.216.196",
       "scope": "GitHub Actions / Linux container; not phone speed",
@@ -35,22 +35,17 @@
       "source": "VPNBook"
     },
     {
-      "ok": true,
-      "checked_at": 1792928477147,
-      "connect_ms": 4406,
-      "mbps": 1.38,
-      "sample_bytes": 524288,
-      "vpn_ip": "144.217.253.149",
-      "scope": "GitHub Actions / Linux container; not phone speed",
+      "ok": false,
+      "reason": "CalledProcessError: Command '['curl', '-4', '--silent', '--show-error', '--fail', '--noproxy', '*', '--connect-timeout', '5', '--max-time', '10', '--resolve', 'speed.cloudflare.com",
       "ip": "144.217.253.149",
       "port": 443,
       "source": "VPNBook"
     },
     {
       "ok": true,
-      "checked_at": 1792928479946,
-      "connect_ms": 5607,
-      "mbps": 0.862,
+      "checked_at": 1792945837302,
+      "connect_ms": 2804,
+      "mbps": 0.756,
       "sample_bytes": 524288,
       "vpn_ip": "147.135.37.178",
       "scope": "GitHub Actions / Linux container; not phone speed",
@@ -59,22 +54,17 @@
       "source": "VPNBook"
     },
     {
-      "ok": true,
-      "checked_at": 1792928490007,
-      "connect_ms": 4406,
-      "mbps": 0.421,
-      "sample_bytes": 524288,
-      "vpn_ip": "145.239.255.68",
-      "scope": "GitHub Actions / Linux container; not phone speed",
+      "ok": false,
+      "reason": "CalledProcessError: Command '['curl', '-4', '--silent', '--show-error', '--fail', '--noproxy', '*', '--connect-timeout', '5', '--max-time', '8', '--resolve', 'speed.cloudflare.com:",
       "ip": "145.239.255.68",
       "port": 443,
       "source": "VPNBook"
     },
     {
       "ok": true,
-      "checked_at": 1792928484888,
-      "connect_ms": 3205,
-      "mbps": 3.401,
+      "checked_at": 1792945844128,
+      "connect_ms": 3005,
+      "mbps": 0.723,
       "sample_bytes": 524288,
       "vpn_ip": "145.239.252.205",
       "scope": "GitHub Actions / Linux container; not phone speed",
@@ -83,10 +73,155 @@
       "source": "VPNBook"
     },
     {
+      "ok": false,
+      "reason": "CalledProcessError: Command '['curl', '-4', '--silent', '--show-error', '--fail', '--noproxy', '*', '--connect-timeout', '5', '--max-time', '8', '--resolve', 'speed.cloudflare.com:",
+      "ip": "5.196.64.200",
+      "port": 443,
+      "source": "VPNBook"
+    },
+    {
+      "ok": false,
+      "reason": "RuntimeError: authentication_or_tunnel_failed",
+      "ip": "51.75.145.20",
+      "port": 443,
+      "source": "VPNBook"
+    },
+    {
       "ok": true,
-      "checked_at": 1792928486659,
-      "connect_ms": 3405,
-      "mbps": 2.711,
+      "checked_at": 1792945857024,
+      "connect_ms": 2004,
+      "mbps": 0.495,
+      "sample_bytes": 524288,
+      "vpn_ip": "65.109.137.25",
+      "scope": "GitHub Actions / Linux container; not phone speed",
+      "ip": "65.109.137.25",
+      "port": 110,
+      "source": "VPN Gate"
+    },
+    {
+      "ok": true,
+      "checked_at": 1792945853329,
+      "connect_ms": 2003,
+      "mbps": 1.44,
+      "sample_bytes": 524288,
+      "vpn_ip": "185.101.25.117",
+      "scope": "GitHub Actions / Linux container; not phone speed",
+      "ip": "185.101.25.117",
+      "port": 1290,
+      "source": "VPN Gate"
+    },
+    {
+      "ok": true,
+      "checked_at": 1792945860799,
+      "connect_ms": 3007,
+      "mbps": 1.847,
+      "sample_bytes": 524288,
+      "vpn_ip": "219.100.37.239",
+      "scope": "GitHub Actions / Linux container; not phone speed",
+      "ip": "219.100.37.110",
+      "port": 443,
+      "source": "VPN Gate"
+    },
+    {
+      "ok": true,
+      "checked_at": 1792945861609,
+      "connect_ms": 2405,
+      "mbps": 1.897,
+      "sample_bytes": 524288,
+      "vpn_ip": "111.217.125.30",
+      "scope": "GitHub Actions / Linux container; not phone speed",
+      "ip": "111.217.125.30",
+      "port": 1964,
+      "source": "VPN Gate"
+    },
+    {
+      "ok": false,
+      "reason": "RuntimeError: authentication_or_tunnel_failed",
+      "ip": "217.138.212.62",
+      "port": 443,
+      "source": "VPN Gate"
+    },
+    {
+      "ok": false,
+      "reason": "RuntimeError: authentication_or_tunnel_failed",
+      "ip": "27.92.168.168",
+      "port": 1491,
+      "source": "VPN Gate"
+    },
+    {
+      "ok": false,
+      "reason": "RuntimeError: authentication_or_tunnel_failed",
+      "ip": "58.188.239.61",
+      "port": 5555,
+      "source": "VPN Gate"
+    },
+    {
+      "ok": false,
+      "reason": "RuntimeError: authentication_or_tunnel_failed",
+      "ip": "124.255.84.202",
+      "port": 1296,
+      "source": "VPN Gate"
+    },
+    {
+      "ok": true,
+      "checked_at": 1792945869506,
+      "connect_ms": 2205,
+      "mbps": 1.73,
+      "sample_bytes": 524288,
+      "vpn_ip": "14.32.0.86",
+      "scope": "GitHub Actions / Linux container; not phone speed",
+      "ip": "14.32.251.62",
+      "port": 995,
+      "source": "VPN Gate"
+    },
+    {
+      "ok": true,
+      "checked_at": 1792945870701,
+      "connect_ms": 2404,
+      "mbps": 1.877,
+      "sample_bytes": 524288,
+      "vpn_ip": "125.176.199.130",
+      "scope": "GitHub Actions / Linux container; not phone speed",
+      "ip": "125.176.199.132",
+      "port": 995,
+      "source": "VPN Gate"
+    },
+    {
+      "ok": true,
+      "checked_at": 1792945871616,
+      "connect_ms": 2204,
+      "mbps": 1.766,
+      "sample_bytes": 524288,
+      "vpn_ip": "118.39.60.66",
+      "scope": "GitHub Actions / Linux container; not phone speed",
+      "ip": "118.39.60.66",
+      "port": 1600,
+      "source": "VPN Gate"
+    },
+    {
+      "ok": true,
+      "checked_at": 1792945881924,
+      "connect_ms": 3205,
+      "mbps": 0.758,
+      "sample_bytes": 524288,
+      "vpn_ip": "118.68.222.29",
+      "scope": "GitHub Actions / Linux container; not phone speed",
+      "ip": "118.68.222.29",
+      "port": 1329,
+      "source": "VPN Gate"
+    },
+    {
+      "ok": false,
+      "reason": "CalledProcessError: Command '['curl', '-4', '--silent', '--show-error', '--fail', '--noproxy', '*', '--connect-timeout', '5', '--max-time', '10', '--resolve', 'speed.cloudflare.com",
+      "ip": "128.27.28.250",
+      "port": 443,
+      "source": "VPN Gate"
+    },
+    {
+      "ok": true,
+      "checked_at": 1792945878407,
+      "connect_ms": 3806,
+      "mbps": 3.237,
       "sample_bytes": 524288,
       "vpn_ip": "5.196.64.231",
       "scope": "GitHub Actions / Linux container; not phone speed",
@@ -95,182 +230,27 @@
       "source": "VPNBook"
     },
     {
-      "ok": false,
-      "reason": "CalledProcessError: Command '['curl', '-4', '--silent', '--show-error', '--fail', '--noproxy', '*', '--connect-timeout', '5', '--max-time', '8', '--resolve', 'speed.cloudflare.com:",
+      "ok": true,
+      "checked_at": 1792945893027,
+      "connect_ms": 5809,
+      "mbps": 0.667,
+      "sample_bytes": 524288,
+      "vpn_ip": "51.75.145.220",
+      "scope": "GitHub Actions / Linux container; not phone speed",
       "ip": "51.75.145.220",
       "port": 443,
       "source": "VPNBook"
     },
     {
       "ok": true,
-      "checked_at": 1792928494360,
-      "connect_ms": 3204,
-      "mbps": 1.78,
+      "checked_at": 1792945891178,
+      "connect_ms": 2605,
+      "mbps": 1.652,
       "sample_bytes": 524288,
-      "vpn_ip": "219.100.37.240",
+      "vpn_ip": "219.100.37.234",
       "scope": "GitHub Actions / Linux container; not phone speed",
-      "ip": "219.100.37.118",
+      "ip": "219.100.37.30",
       "port": 443,
-      "source": "VPN Gate"
-    },
-    {
-      "ok": true,
-      "checked_at": 1792928495627,
-      "connect_ms": 2203,
-      "mbps": 1.636,
-      "sample_bytes": 524288,
-      "vpn_ip": "31.207.182.212",
-      "scope": "GitHub Actions / Linux container; not phone speed",
-      "ip": "31.207.182.212",
-      "port": 1754,
-      "source": "VPN Gate"
-    },
-    {
-      "ok": true,
-      "checked_at": 1792928497427,
-      "connect_ms": 2204,
-      "mbps": 1.644,
-      "sample_bytes": 524288,
-      "vpn_ip": "220.219.199.157",
-      "scope": "GitHub Actions / Linux container; not phone speed",
-      "ip": "220.219.199.157",
-      "port": 1395,
-      "source": "VPN Gate"
-    },
-    {
-      "ok": true,
-      "checked_at": 1792928501035,
-      "connect_ms": 2203,
-      "mbps": 2.021,
-      "sample_bytes": 524288,
-      "vpn_ip": "114.156.233.159",
-      "scope": "GitHub Actions / Linux container; not phone speed",
-      "ip": "114.156.233.159",
-      "port": 1730,
-      "source": "VPN Gate"
-    },
-    {
-      "ok": true,
-      "checked_at": 1792928503057,
-      "connect_ms": 2203,
-      "mbps": 1.509,
-      "sample_bytes": 524288,
-      "vpn_ip": "219.104.84.18",
-      "scope": "GitHub Actions / Linux container; not phone speed",
-      "ip": "219.104.84.18",
-      "port": 1926,
-      "source": "VPN Gate"
-    },
-    {
-      "ok": false,
-      "reason": "RuntimeError: authentication_or_tunnel_failed",
-      "ip": "115.179.206.241",
-      "port": 443,
-      "source": "VPN Gate"
-    },
-    {
-      "ok": false,
-      "reason": "CalledProcessError: Command '['curl', '-4', '--silent', '--show-error', '--fail', '--noproxy', '*', '--connect-timeout', '5', '--max-time', '10', '--resolve', 'speed.cloudflare.com",
-      "ip": "126.187.36.189",
-      "port": 1991,
-      "source": "VPN Gate"
-    },
-    {
-      "ok": true,
-      "checked_at": 1792928507965,
-      "connect_ms": 2203,
-      "mbps": 1.848,
-      "sample_bytes": 524288,
-      "vpn_ip": "126.47.108.106",
-      "scope": "GitHub Actions / Linux container; not phone speed",
-      "ip": "126.47.108.106",
-      "port": 1312,
-      "source": "VPN Gate"
-    },
-    {
-      "ok": true,
-      "checked_at": 1792928513249,
-      "connect_ms": 3805,
-      "mbps": 1.07,
-      "sample_bytes": 524288,
-      "vpn_ip": "60.126.217.205",
-      "scope": "GitHub Actions / Linux container; not phone speed",
-      "ip": "60.126.217.205",
-      "port": 1558,
-      "source": "VPN Gate"
-    },
-    {
-      "ok": true,
-      "checked_at": 1792928516083,
-      "connect_ms": 2203,
-      "mbps": 1.775,
-      "sample_bytes": 524288,
-      "vpn_ip": "126.1.52.210",
-      "scope": "GitHub Actions / Linux container; not phone speed",
-      "ip": "126.1.52.210",
-      "port": 1590,
-      "source": "VPN Gate"
-    },
-    {
-      "ok": false,
-      "reason": "RuntimeError: authentication_or_tunnel_failed",
-      "ip": "60.129.90.182",
-      "port": 1926,
-      "source": "VPN Gate"
-    },
-    {
-      "ok": true,
-      "checked_at": 1792928521006,
-      "connect_ms": 2403,
-      "mbps": 1.814,
-      "sample_bytes": 524288,
-      "vpn_ip": "126.58.184.65",
-      "scope": "GitHub Actions / Linux container; not phone speed",
-      "ip": "126.58.184.65",
-      "port": 1430,
-      "source": "VPN Gate"
-    },
-    {
-      "ok": true,
-      "checked_at": 1792928523133,
-      "connect_ms": 2604,
-      "mbps": 1.752,
-      "sample_bytes": 524288,
-      "vpn_ip": "119.224.221.130",
-      "scope": "GitHub Actions / Linux container; not phone speed",
-      "ip": "119.224.221.130",
-      "port": 1462,
-      "source": "VPN Gate"
-    },
-    {
-      "ok": false,
-      "reason": "RuntimeError: authentication_or_tunnel_failed",
-      "ip": "125.9.221.85",
-      "port": 1871,
-      "source": "VPN Gate"
-    },
-    {
-      "ok": true,
-      "checked_at": 1792928526278,
-      "connect_ms": 2403,
-      "mbps": 1.383,
-      "sample_bytes": 524288,
-      "vpn_ip": "176.210.169.101",
-      "scope": "GitHub Actions / Linux container; not phone speed",
-      "ip": "176.210.169.101",
-      "port": 1333,
-      "source": "VPN Gate"
-    },
-    {
-      "ok": true,
-      "checked_at": 1792928528415,
-      "connect_ms": 2403,
-      "mbps": 1.712,
-      "sample_bytes": 524288,
-      "vpn_ip": "118.34.223.178",
-      "scope": "GitHub Actions / Linux container; not phone speed",
-      "ip": "125.130.183.11",
-      "port": 995,
       "source": "VPN Gate"
     }
   ]
