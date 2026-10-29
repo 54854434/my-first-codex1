@@ -65,22 +65,21 @@ click('打开战术地图')
 shot('03-tactical-map')
 click('派兵攻打')
 shot('04-free-battle')
-click('暂停与设置')
+adb('shell','input','keyevent','4');time.sleep(.35)
 click('备份存档')
 saved=save_from_ui();assert saved['run']['allies'],'Recruitment must persist'
 assert saved['run']['order']['mode']=='assault','Army must accept independent orders'
 assert abs(saved['run']['hero']['x']-300)>20 or abs(saved['run']['hero']['y']-1100)>20,'Waypoint movement must occur'
 assert saved['run']['supply']>=0
-click('返回战场')
 adb('shell','input','keyevent','3');time.sleep(2)
 adb('shell','am','start','-W','-n',PKG+'/.MainActivity');time.sleep(2)
 assert adb('shell','pidof',PKG).strip()
+# Keep the backup panel paused while backgrounding and restarting.
 # Force a real process restart to verify SharedPreferences restoration.
-click('暂停与设置')
 adb('shell','am','force-stop',PKG)
 adb('shell','am','start','-W','-n',PKG+'/.MainActivity');time.sleep(8)
 click('继续作战')
-click('暂停与设置')
+adb('shell','input','keyevent','4');time.sleep(.35)
 click('备份存档')
 restored=save_from_ui();assert restored['version']==2;assert restored['sorties']==saved['sorties'];assert restored['run']['allies'];assert restored['run']['order']['mode']=='assault'
 logs=adb('logcat','-d');(OUT/'android-logcat.txt').write_text(logs)
