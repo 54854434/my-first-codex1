@@ -15,11 +15,15 @@ def find_label(label):
    if len(xy)==4 and xy[2]>xy[0] and xy[3]>xy[1]:return (xy[0]+xy[2])//2,(xy[1]+xy[3])//2
  return None
 def click(label):
- for _ in range(8):
+ for attempt in range(10):
   pos=find_label(label)
   if pos:adb('shell','input','tap',str(pos[0]),str(pos[1]));time.sleep(.8);return
+  if attempt in [1,2,3]:adb('shell','input','swipe','540','1500','540','550','400')
+  elif attempt in [5,6,7]:adb('shell','input','swipe','540','500','540','1500','400')
   time.sleep(.8)
  root,raw=dump();(OUT/'failed-ui.xml').write_text(raw)
+ (OUT/'android-logcat.txt').write_text(adb('logcat','-d'))
+ shot('failed-screen')
  raise AssertionError('UI element not found: '+label)
 def shot(name):
  data=subprocess.run(['adb','exec-out','screencap','-p'],check=True,capture_output=True).stdout
