@@ -23,3 +23,5 @@ test('save restores the full campaign and rejects malformed imported worlds',()=
 test('v1 migration preserves earned medals and keeps the old save as an archive',()=>{const old={version:1,medals:7,levels:{damage:2}};const g=new Engine(old);assert.equal(g.p.intel,7);assert.deepEqual(g.p.legacy,old);assert.equal(g.r,null);});
 
 test("army movement steers around obstacles instead of remaining stuck on a direct route",()=>{const g=fresh(),u={id:91,x:400,y:1100,r:10,angle:0};g.obstacles.insertAll([{x:520,y:1100,r:26}]);for(let t=0;t<6;t+=1/30)g.move(u,700-u.x,1100-u.y,116,1/30);assert(dist(u,{x:700,y:1100})<15);});
+
+test("long-term research can save and restore a full army above sixty soldiers",()=>{const g=fresh();g.r.stats.slots=122;g.r.supply=1e9;for(let i=0;i<120;i++)assert(g.recruit("infantry"));assert(validSave(g.snapshot()));assert.equal(new Engine(g.snapshot()).r.allies.length,120);});

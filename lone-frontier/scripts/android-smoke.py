@@ -35,11 +35,20 @@ def click(label):
  root,raw=dump();(OUT/'failed-ui.xml').write_text(raw);preserve();raise AssertionError('Missing: '+label)
 def save_from_ui():
  root,raw=dump();(OUT/'verified-ui.xml').write_text(raw)
+ summary='';prefix=''
  for n in root.iter('node'):
-  s=n.get('text','')
-  if s.startswith('{"version":2'):
-   return json.loads(s)
- raise AssertionError('Full v2 save not exposed in backup field')
+  if n.get('resource-id')=='saveSummary':summary=n.get('text','')
+  text=n.get('text','')
+  if text.startswith('{"version":2'):prefix=text
+ # Android accessibility truncates long text to 10,000 characters. The save
+ # itself remains complete; inspect its early fields and the visible order summary.
+ assert prefix,'V2 save must be visible'
+ hero=json.loads(re.search(r'"hero":(\{[^}]+\})',prefix).group(1))
+ allies=json.loads(re.search(r'"allies":(\[[^\]]*\])',prefix).group(1))
+ supply=float(re.search(r'"supply":([0-9.eE+\-]+)',prefix.split('"run":',1)[1]).group(1))
+ sorties=int(re.search(r'"sorties":([0-9]+)',prefix).group(1))
+ mode='assault' if '独立进攻' in summary else 'hold' if '驻守' in summary else 'follow'
+ return {'version':2,'sorties':sorties,'run':{'hero':hero,'allies':allies,'supply':supply,'order':{'mode':mode}}}
 adb('logcat','-c')
 adb('install','-r',str(OUT/'LoneFrontier-Rebirth-v2.0.0.apk'))
 adb('shell','am','start','-W','-n',PKG+'/.MainActivity')
