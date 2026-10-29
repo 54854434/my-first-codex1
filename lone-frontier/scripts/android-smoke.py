@@ -1,12 +1,17 @@
 """Install and exercise the actual Android WebView application with ADB."""
-import subprocess,time,xml.etree.ElementTree as ET,re,pathlib,json
+import subprocess,time,xml.etree.ElementTree as ET,re,pathlib,json,atexit
 OUT=pathlib.Path('lone-frontier/dist'); OUT.mkdir(exist_ok=True)
 PKG='com.lonefrontier.game'
 def adb(*args,check=True):return subprocess.run(['adb',*args],check=check,capture_output=True,text=True).stdout
 def dump():
- adb('shell','uiautomator','dump','/sdcard/frontier-ui.xml')
- raw=adb('shell','cat','/sdcard/frontier-ui.xml')
- return ET.fromstring(raw),raw
+ for attempt in range(6):
+  adb('shell','uiautomator','dump','--compressed','/sdcard/frontier-ui.xml',check=False)
+  raw=adb('shell','cat','/sdcard/frontier-ui.xml',check=False)
+  if raw.lstrip().startswith('<?xml'):
+   try:return ET.fromstring(raw),raw
+   except ET.ParseError:pass
+  time.sleep(2)
+ raise AssertionError('Android UI hierarchy did not become ready')
 def find_label(label):
  root,raw=dump()
  for node in root.iter('node'):
@@ -28,10 +33,16 @@ def click(label):
 def shot(name):
  data=subprocess.run(['adb','exec-out','screencap','-p'],check=True,capture_output=True).stdout
  (OUT/(name+'.png')).write_bytes(data)
+def preserve_logs():
+ try:
+  (OUT/'android-logcat.txt').write_text(adb('logcat','-d'))
+  shot('last-screen')
+ except Exception:pass
+atexit.register(preserve_logs)
 adb('logcat','-c')
 adb('install','-r',str(OUT/'LoneFrontier-v1.0.0.apk'))
 adb('shell','am','start','-W','-n',PKG+'/.MainActivity')
-time.sleep(4)
+time.sleep(18)
 shot('01-briefing')
 click('部署第一名步兵')
 time.sleep(3)
