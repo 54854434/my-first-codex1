@@ -1,4 +1,4 @@
-name: Lone Frontier APK
+name: Lone Frontier Rebirth APK
 on:
   push:
     branches: ['codex/lone-frontier-android']
@@ -39,6 +39,6 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: LoneFrontier-Android
+          name: LoneFrontier-Rebirth-Android
           path: lone-frontier/dist/
           retention-days: 30

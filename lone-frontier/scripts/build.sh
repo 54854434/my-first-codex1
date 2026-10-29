@@ -15,6 +15,8 @@ GAME_KEYSTORE="${FRONTIER_KEYSTORE:-$PROJECT_ROOT/.signing/frontier.jks}"
 GAME_OUTPUT="${FRONTIER_OUTPUT:-$PROJECT_ROOT/dist}"
 mkdir -p "$PROJECT_ROOT/build/classes" "$PROJECT_ROOT/build/dex" "$GAME_OUTPUT" "$(dirname "$GAME_KEYSTORE")"
 node --check "$PROJECT_ROOT/app/src/main/assets/game.js"
+node --check "$PROJECT_ROOT/app/src/main/assets/renderer.js"
+node --check "$PROJECT_ROOT/app/src/main/assets/input.js"
 node --test "$PROJECT_ROOT/tests/engine.test.cjs"
 if command -v javac >/dev/null 2>&1; then
  javac -source 8 -target 8 -Xlint:-options -cp "$ANDROID_JAR" -d "$PROJECT_ROOT/build/classes" "$PROJECT_ROOT/app/src/main/java/com/lonefrontier/game/MainActivity.java"
@@ -28,7 +30,7 @@ fi
 if [[ ! -f "$GAME_KEYSTORE" ]]; then
  keytool -genkeypair -keystore "$GAME_KEYSTORE" -alias frontier -keyalg RSA -keysize 2048 -validity 10000 -storepass android -keypass android -dname 'CN=Lone Frontier Personal Game,O=Independent,C=CN' >/dev/null
 fi
-"$BUILD_TOOLS/apksigner" sign --ks "$GAME_KEYSTORE" --ks-key-alias frontier --ks-pass pass:android --key-pass pass:android --out "$GAME_OUTPUT/LoneFrontier-v1.0.0.apk" "$PROJECT_ROOT/build/aligned.apk"
-"$BUILD_TOOLS/apksigner" verify --verbose "$GAME_OUTPUT/LoneFrontier-v1.0.0.apk"
-"$BUILD_TOOLS/zipalign" -c 4 "$GAME_OUTPUT/LoneFrontier-v1.0.0.apk"
-"$BUILD_TOOLS/aapt" dump badging "$GAME_OUTPUT/LoneFrontier-v1.0.0.apk"
+"$BUILD_TOOLS/apksigner" sign --ks "$GAME_KEYSTORE" --ks-key-alias frontier --ks-pass pass:android --key-pass pass:android --out "$GAME_OUTPUT/LoneFrontier-Rebirth-v2.0.0.apk" "$PROJECT_ROOT/build/aligned.apk"
+"$BUILD_TOOLS/apksigner" verify --verbose "$GAME_OUTPUT/LoneFrontier-Rebirth-v2.0.0.apk"
+"$BUILD_TOOLS/zipalign" -c 4 "$GAME_OUTPUT/LoneFrontier-Rebirth-v2.0.0.apk"
+"$BUILD_TOOLS/aapt" dump badging "$GAME_OUTPUT/LoneFrontier-Rebirth-v2.0.0.apk"

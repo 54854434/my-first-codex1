@@ -1,65 +1,82 @@
-"""Install and exercise the actual Android WebView application with ADB."""
-import subprocess,time,xml.etree.ElementTree as ET,re,pathlib,json,atexit
-OUT=pathlib.Path('lone-frontier/dist'); OUT.mkdir(exist_ok=True)
+"""Install and operate the real v2 Android survivor/RTS app, preserving device evidence."""
+import subprocess,time,xml.etree.ElementTree as ET,re,pathlib,json,atexit,struct
+OUT=pathlib.Path('lone-frontier/dist');OUT.mkdir(exist_ok=True)
 PKG='com.lonefrontier.game'
 def adb(*args,check=True):return subprocess.run(['adb',*args],check=check,capture_output=True,text=True).stdout
+def shot(name):
+ data=subprocess.run(['adb','exec-out','screencap','-p'],check=True,capture_output=True).stdout
+ (OUT/(name+'.png')).write_bytes(data)
+ return struct.unpack('>II',data[16:24])
+def preserve():
+ try:(OUT/'android-logcat.txt').write_text(adb('logcat','-d'));shot('last-screen')
+ except Exception:pass
+atexit.register(preserve)
 def dump():
- for attempt in range(6):
+ for _ in range(5):
   adb('shell','uiautomator','dump','--compressed','/sdcard/frontier-ui.xml',check=False)
   raw=adb('shell','cat','/sdcard/frontier-ui.xml',check=False)
   if raw.lstrip().startswith('<?xml'):
    try:return ET.fromstring(raw),raw
    except ET.ParseError:pass
   time.sleep(2)
- raise AssertionError('Android UI hierarchy did not become ready')
-def find_label(label):
+ raise AssertionError('UI hierarchy unavailable')
+def locate(label):
  root,raw=dump()
- for node in root.iter('node'):
-  if label in node.get('text','') or label in node.get('content-desc',''):
-   xy=list(map(int,re.findall(r'\d+',node.get('bounds',''))))
-   if len(xy)==4 and xy[2]>xy[0] and xy[3]>xy[1]:return (xy[0]+xy[2])//2,(xy[1]+xy[3])//2
+ for n in root.iter('node'):
+  if label in n.get('text','') or label in n.get('content-desc',''):
+   v=list(map(int,re.findall(r'\d+',n.get('bounds',''))))
+   if len(v)==4 and v[2]>v[0] and v[3]>v[1]:return (v[0]+v[2])//2,(v[1]+v[3])//2
  return None
 def click(label):
- for attempt in range(10):
-  pos=find_label(label)
-  if pos:adb('shell','input','tap',str(pos[0]),str(pos[1]));time.sleep(.8);return
-  if attempt in [1,2,3]:adb('shell','input','swipe','540','1500','540','550','400')
-  elif attempt in [5,6,7]:adb('shell','input','swipe','540','500','540','1500','400')
-  time.sleep(.8)
- root,raw=dump();(OUT/'failed-ui.xml').write_text(raw)
- (OUT/'android-logcat.txt').write_text(adb('logcat','-d'))
- shot('failed-screen')
- raise AssertionError('UI element not found: '+label)
-def shot(name):
- data=subprocess.run(['adb','exec-out','screencap','-p'],check=True,capture_output=True).stdout
- (OUT/(name+'.png')).write_bytes(data)
-def preserve_logs():
- try:
-  (OUT/'android-logcat.txt').write_text(adb('logcat','-d'))
-  shot('last-screen')
- except Exception:pass
-atexit.register(preserve_logs)
+ for attempt in range(5):
+  pos=locate(label)
+  if pos:adb('shell','input','tap',str(pos[0]),str(pos[1]));time.sleep(.7);return
+  time.sleep(1)
+ root,raw=dump();(OUT/'failed-ui.xml').write_text(raw);preserve();raise AssertionError('Missing: '+label)
+def save_from_ui():
+ root,raw=dump();(OUT/'verified-ui.xml').write_text(raw)
+ for n in root.iter('node'):
+  s=n.get('text','')
+  if s.startswith('{"version":2'):
+   return json.loads(s)
+ raise AssertionError('Full v2 save not exposed in backup field')
 adb('logcat','-c')
-adb('install','-r',str(OUT/'LoneFrontier-v1.0.0.apk'))
+adb('install','-r',str(OUT/'LoneFrontier-Rebirth-v2.0.0.apk'))
 adb('shell','am','start','-W','-n',PKG+'/.MainActivity')
 time.sleep(18)
-shot('01-briefing')
-click('部署第一名步兵')
-time.sleep(3)
-click('升级制式步枪')
-shot('02-battle')
+width,height=shot('01-rebirth-camp');assert width>height,'App must launch in landscape'
+click('出击')
+click('招募部队')
+click('招募 · 38')
+shot('02-army-recruitment')
+click('返回战场')
+# Set a waypoint on empty central terrain to exercise actual movement.
+adb('shell','input','tap',str(int(width*.52)),str(int(height*.53)));time.sleep(1.5)
+click('打开战术地图')
+shot('03-tactical-map')
+click('派兵攻打')
+shot('04-free-battle')
 click('暂停与设置')
-root,raw=dump();assert '战术暂停' in raw
-shot('03-settings')
-click('备份 / 恢复存档')
-root,raw=dump();assert '选中全部存档' in raw
-click('返回作战')
+click('备份存档')
+saved=save_from_ui();assert saved['run']['allies'],'Recruitment must persist'
+assert saved['run']['order']['mode']=='assault','Army must accept independent orders'
+assert abs(saved['run']['hero']['x']-300)>20 or abs(saved['run']['hero']['y']-1100)>20,'Waypoint movement must occur'
+assert saved['run']['supply']>=0
+click('返回战场')
 adb('shell','input','keyevent','3');time.sleep(2)
 adb('shell','am','start','-W','-n',PKG+'/.MainActivity');time.sleep(2)
 assert adb('shell','pidof',PKG).strip()
-root,raw=dump();(OUT/'verified-ui.xml').write_text(raw)
+# Force a real process restart to verify SharedPreferences restoration.
+click('暂停与设置')
+adb('shell','am','force-stop',PKG)
+adb('shell','am','start','-W','-n',PKG+'/.MainActivity');time.sleep(8)
+click('继续作战')
+click('暂停与设置')
+click('备份存档')
+restored=save_from_ui();assert restored['version']==2;assert restored['sorties']==saved['sorties'];assert restored['run']['allies'];assert restored['run']['order']['mode']=='assault'
 logs=adb('logcat','-d');(OUT/'android-logcat.txt').write_text(logs)
-errors=[line for line in logs.splitlines() if ('Uncaught ' in line or 'FATAL EXCEPTION' in line) and ('chromium' in line or PKG in line)]
+errors=[l for l in logs.splitlines() if 'Uncaught ' in l and 'chromium' in l or 'FATAL EXCEPTION' in l]
 assert not errors,'\n'.join(errors)
-(OUT/'android-smoke.json').write_text(json.dumps({'install':'passed','launch':'passed','deployment':'passed','upgrade':'passed','pause':'passed','backup':'passed','background_resume':'passed','javascript_errors':errors,'sdk':adb('shell','getprop','ro.build.version.sdk').strip()},indent=2))
-print('ANDROID SMOKE PASSED: install, launch, deploy, upgrade, settings, backup, background resume; no JavaScript errors.')
+report={'sdk':adb('shell','getprop','ro.build.version.sdk').strip(),'install':'passed','landscape':'passed','deployment':'passed','recruitment':'passed','movement':'passed','tactical_map':'passed','independent_army_orders':'passed','backup':'passed','background_resume':'passed','process_restart_restore':'passed','javascript_errors':errors,'saved_army':len(restored['run']['allies'])}
+(OUT/'android-smoke.json').write_text(json.dumps(report,indent=2))
+print('ANDROID V2 SMOKE PASSED',json.dumps(report))

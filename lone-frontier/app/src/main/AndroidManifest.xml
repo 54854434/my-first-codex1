@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.lonefrontier.game" android:versionCode="1" android:versionName="1.0.0">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.lonefrontier.game" android:versionCode="2" android:versionName="2.0.0">
  <uses-sdk android:minSdkVersion="26" android:targetSdkVersion="35" />
  <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
- <application android:label="孤军：无限战线" android:icon="@drawable/icon" android:theme="@android:style/Theme.Material.NoActionBar" android:allowBackup="true" android:supportsRtl="false" android:hardwareAccelerated="true" android:usesCleartextTraffic="false" android:appCategory="game">
-  <activity android:name=".MainActivity" android:exported="true" android:configChanges="orientation|screenSize|keyboardHidden" android:screenOrientation="portrait">
+ <application android:label="孤军：重生战役" android:icon="@drawable/icon" android:theme="@android:style/Theme.Material.NoActionBar" android:allowBackup="true" android:supportsRtl="false" android:hardwareAccelerated="true" android:usesCleartextTraffic="false" android:appCategory="game">
+  <activity android:name=".MainActivity" android:exported="true" android:configChanges="orientation|screenSize|keyboardHidden" android:screenOrientation="sensorLandscape">
    <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>
   </activity>
  </application>
