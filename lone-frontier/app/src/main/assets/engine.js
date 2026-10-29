@@ -80,7 +80,9 @@ class Engine{
  else if(mode==='hold'){r.order={mode:'hold',x:r.hero.x,y:r.hero.y};}
  else if(mode==='assault'){const s=r.sites.find(s=>s.id===siteId);if(!s||!s.discovered)return false;r.order={mode:'assault',x:s.x,y:s.y,siteId};}
  else return false;this.emit('command',{mode});return true;}
- move(u,dx,dy,speed,dt){const len=Math.hypot(dx,dy);if(len<.0001)return;const step=Math.min(speed*dt,len),nx=dx/len,ny=dy/len;u.x=clamp(u.x+nx*step,24,W-24);u.y=clamp(u.y+ny*step,24,H-24);u.angle=Math.atan2(ny,nx);
+ move(u,dx,dy,speed,dt){const len=Math.hypot(dx,dy);if(len<.0001)return;const step=Math.min(speed*dt,len);let nx=dx/len,ny=dy/len;
+ for(const o of this.obstacles.queryRect(u.x,u.y,100)){const ox=o.x-u.x,oy=o.y-u.y,forward=ox*nx+oy*ny,side=nx*oy-ny*ox,clear=o.r+u.r+10;if(forward>0&&forward<clear+speed*dt+18&&Math.abs(side)<clear){const sign=side===0?(Number(u.id)%2?1:-1):(side>0?-1:1),turn=(1-Math.abs(side)/clear)*1.4;const ax=nx-ny*sign*turn,ay=ny+nx*sign*turn,an=Math.hypot(ax,ay);nx=ax/an;ny=ay/an;}}
+ u.x=clamp(u.x+nx*step,24,W-24);u.y=clamp(u.y+ny*step,24,H-24);u.angle=Math.atan2(ny,nx);
  for(const o of this.obstacles.queryRect(u.x,u.y,65)){let x=u.x-o.x,y=u.y-o.y,d=Math.hypot(x,y),min=o.r+u.r;if(d<min){if(d<.001){x=1;y=0;d=1;}u.x=o.x+x/d*min;u.y=o.y+y/d*min;}}
  }
  spawnEnemy(type,x,y,home=null,raid=null){const r=this.r,t=ENEMIES[type];if(r.enemies.length>=185)return null;const site=home?r.sites.find(s=>s.id===home):null;const growth=this.difficulty()*(home?1+.2*((site?site.tier:1)-1):Math.exp(Math.min(30,r.time/60*Math.log(1.06))));const hp=t.hp*growth;const e={id:r.uid++,type,x:clamp(x,30,W-30),y:clamp(y,30,H-30),hp,max:hp,r:t.r,damage:t.damage*Math.pow(growth,.65),home,raid,shoot:this.rand(),angle:0,stun:0};r.enemies.push(e);return e;}
