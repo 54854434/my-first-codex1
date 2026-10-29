@@ -27,7 +27,7 @@ bash scripts/build.sh
 
 产物为 `dist/LoneFrontier-v1.0.0.apk`。首次构建会创建 `.signing/frontier.jks` 个人签名，别名 `frontier`，密码 `android`。保留此文件可以为后续版本使用同一签名。可以通过 `FRONTIER_KEYSTORE` 指定其他密钥路径。
 
-源码备份压缩包内附此交付 APK 对应的 `.signing/frontier.jks`，方便后续更新覆盖安装；GitHub 不存储签名密钥，云端重新构建的包会使用新签名。
+交付的签名备份压缩包内附此 APK 对应的 `frontier.jks`，方便后续更新覆盖安装；GitHub 不存储签名密钥，云端重新构建的包会使用新签名。
 
 GitHub Actions 工作流见 `.github/workflows/lone-frontier.yml`。在当前仓库中游戏位于 `lone-frontier/` 子目录，工作流位于仓库根目录；工作流会构建 APK、在 Android 11 模拟器安装并操作应用、保存截图与日志。
 
